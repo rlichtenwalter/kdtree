@@ -53,8 +53,8 @@ namespace kdtree {
 			const_reverse_iterator crend() const noexcept { return _coordinates.crend(); }
 	};
 
-	template <class T, std::size_t d>
-	T squared_euclidean_distance( point<T,d> const & p1, point<T,d> const & p2 ) {
+	template <class T, class U, std::size_t d>
+	T squared_euclidean_distance( point<T,d> const & p1, point<U,d> const & p2 ) {
 		/* AWAIT BETTER C++ 2020 SUPPORT
 		auto sum_function = []( auto accum, auto element ) { return accum + element; };
 		auto product_function = []( auto xi1, auto xi2 ) { return std::pow( xi1 - xi2, 2 ); };

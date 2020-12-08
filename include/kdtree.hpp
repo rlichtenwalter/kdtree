@@ -9,7 +9,9 @@
 #include <limits>
 #include <queue>
 #include <string>
+#include <type_traits>
 #include <utility>
+#include "point.hpp"
 
 /*
 Eventually, because it's really easy to implement, the nearest neighbor functions should accept a
@@ -280,14 +282,26 @@ namespace kdtree {
 	}
 
 	template <class RandomAccessIterator, class Point>
-	std::vector<RandomAccessIterator> radiusquery_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const & point, typename Point::coordinate_type radius ) {
+	std::vector<RandomAccessIterator> radiusquery_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const & point, double radius ) {
 		std::vector<RandomAccessIterator> locations;
 		if( radius > 0 ) {
-			Point min( point[0] - radius, point[1] - radius );
-			Point max( point[0] + radius, point[1] + radius );
-			std::vector<RandomAccessIterator> candidates = rangequery_kdtree( begin, end, min, max );
-			auto squared_radius = radius*radius;
-			std::copy_if( candidates.cbegin(), candidates.cend(), locations.begin(), [&point](auto const & p) { return squared_euclidean_distance( point, p ) < squared_radius; } );
+			auto squared_radius = radius * radius;
+			// compute points for range query
+			if( std::is_integral<typename Point::coordinate_type>::value ) {
+				radius = std::ceil( radius );
+			}
+			Point min( point );
+			Point max( point );
+			for( auto & val : min ) {
+				val -= radius;
+			}
+			for( auto & val : max ) {
+				val += radius;
+			}
+			locations = rangequery_kdtree( begin, end, min, max );
+			auto postlast = std::remove_if( locations.begin(), locations.end(), [&point,squared_radius](auto const & p) { return kdtree::squared_euclidean_distance( point, *p ) > squared_radius; } );
+			// resize the container to exclude removed elements
+			locations.resize( postlast - locations.cbegin() );
 		}
 		return locations;
 	}
