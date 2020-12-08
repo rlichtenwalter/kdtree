@@ -280,14 +280,14 @@ namespace kdtree {
 	}
 
 	template <class RandomAccessIterator, class Point>
-	std::vector<RandomAccessIterator> radiusquery_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const & point, Point::coordinate_type radius ) {
+	std::vector<RandomAccessIterator> radiusquery_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const & point, typename Point::coordinate_type radius ) {
 		std::vector<RandomAccessIterator> locations;
 		if( radius > 0 ) {
 			Point min( point[0] - radius, point[1] - radius );
 			Point max( point[0] + radius, point[1] + radius );
 			std::vector<RandomAccessIterator> candidates = rangequery_kdtree( begin, end, min, max );
 			auto squared_radius = radius*radius;
-			std::copy_if( candidates.cbegin(), candidates.cend(), locations.begin(), [](auto const & other) { return squared_euclidean_distance( p, other ) < squared_radius; } );
+			std::copy_if( candidates.cbegin(), candidates.cend(), locations.begin(), [&point](auto const & p) { return squared_euclidean_distance( point, p ) < squared_radius; } );
 		}
 		return locations;
 	}
