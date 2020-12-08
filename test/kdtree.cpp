@@ -31,8 +31,8 @@ int main( int argc, char* argv[] ) {
 		intpoint x9 = {6, -3};
 		intpoint x10 = {-4, 0};
 		intpoint x11 = {0, -1};
-		intpoint x12 = {-2, -1 };
-		intpoint x13 = {3,3};
+		intpoint x12 = {-2, -1};
+		intpoint x13 = {3, 3};
 		std::vector<intpoint> data = { x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13 };
 
 	//	kdtree::print_kdtree( std::cerr, data.begin(), data.end() );
@@ -65,6 +65,15 @@ int main( int argc, char* argv[] ) {
 		for( auto location : range_locations ) {
 			std::cout << *location << "\n";
 		}
+
+		intpoint center = {-2, -3};
+		double radius = 4.9;
+		auto radius_locations = kdtree::radiusquery_kdtree( data.cbegin(), data.cend(), center, radius );
+		std::cout << "\nRadius query within " << radius << " units of " << center << ":\n";
+		for( auto location : radius_locations ) {
+			std::cout << *location << "\n";
+		}
+
 	}
 
 	std::cout << "\n\nTesting T=float:\n\n";
@@ -115,6 +124,14 @@ int main( int argc, char* argv[] ) {
 		for( auto location : range_locations ) {
 			std::cout << *location << "\n";
 		}
+
+		floatpoint center = {-2.0f, -1.0f};
+		double radius = 2.7;
+		auto radius_locations = kdtree::radiusquery_kdtree( data.cbegin(), data.cend(), center, radius );
+		std::cout << "\nRadius query within " << radius << " units of " << center << ":\n";
+		for( auto location : radius_locations ) {
+			std::cout << *location << "\n";
+		}
 	}
 
 	std::cout << "\n\nTesting d=3:\n\n";
@@ -131,8 +148,8 @@ int main( int argc, char* argv[] ) {
 		highdpoint x9 = {6, -3, 1};
 		highdpoint x10 = {-4, 0, 1};
 		highdpoint x11 = {0, -1, 1};
-		highdpoint x12 = {-2, -1, 1 };
-		highdpoint x13 = {3,3, 1};
+		highdpoint x12 = {-2, -1, 1};
+		highdpoint x13 = {3, 3, 1};
 		std::vector<highdpoint> data = { x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13 };
 
 	//	kdtree::print_kdtree( std::cerr, data.begin(), data.end() );
@@ -146,23 +163,31 @@ int main( int argc, char* argv[] ) {
 		std::cout << "\nExact match for " << exact << ":\n";
 		std::cout << *exact_match_location << "\n";
 
-		highdpoint p = {-1,-1, 1};
+		highdpoint p = {-1, -1, 1};
 		auto nn_location = kdtree::nnsearch_kdtree( data.cbegin(), data.cend(), p );
 		std::cout << "\nNearest neighbor of " << p << ":\n";
 		std::cout << *nn_location << "\n";
 
-		highdpoint knn_point = {-1,-1, 1};
+		highdpoint knn_point = {-1, -1, 1};
 		auto knn_locations = kdtree::nnsearch_kdtree( data.cbegin(), data.cend(), knn_point, 4 );
 		std::cout << "\nk nearest neighbors of " << knn_point << " with k=4:\n";
 		for( auto location : knn_locations ) {
 			std::cout << *location << "\n";
 		}
 
-		highdpoint lower = {-2,-3, 1};
-		highdpoint upper = {3,3, 1};
+		highdpoint lower = {-2, -3, 1};
+		highdpoint upper = {3, 3, 1};
 		auto range_locations = kdtree::rangequery_kdtree( data.cbegin(), data.cend(), lower, upper );
 		std::cout << "\nRange query within [" << lower << "," << upper << "]:\n";
 		for( auto location : range_locations ) {
+			std::cout << *location << "\n";
+		}
+
+		highdpoint center = {-2, -2, 1};
+		double radius = 2.24;
+		auto radius_locations = kdtree::radiusquery_kdtree( data.cbegin(), data.cend(), center, radius );
+		std::cout << "\nRadius query within " << radius << " units of " << center << ":\n";
+		for( auto location : radius_locations ) {
 			std::cout << *location << "\n";
 		}
 	}
