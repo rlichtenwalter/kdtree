@@ -9,7 +9,3 @@ BUILDING
 1. Enter project top-level directory, and type 'make'.
 2. At the moment, there is no 'install' target, so include files incorporating the main header-only k-d tree library must use one of various methods to directly reference the header file by path (e.g. compiler -I flag, full #include path).
 
-VERSION HISTORY
-===============
-0.1 (beta)
-	- Initial release.
