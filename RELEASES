@@ -1,0 +1,11 @@
+Change Log
+==========
+
+Version 0.9 (beta)
+------------------
+- Initial tagged release.
+- Indexing working.
+- Exact search working.
+- Nearest neighbor queries working.
+- Range query working.
+- Radius query just implemented.
