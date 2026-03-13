@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - CMake install support with `find_package(kdtree)` for downstream consumers
 - pkg-config support for non-CMake consumers
 - CTest integration for test executables
+- Comprehensive Catch2 v3 unit test suite covering point, kdtree, convex_polygon, and point_in_polygon
 - Gitea Actions CI workflow for build and test on push/PR
 - CLI version string sourced from VERSION file via CMake
 
