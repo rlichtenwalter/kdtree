@@ -1,5 +1,5 @@
-#ifndef HDTREE_CONVEX_POLYGON_HPP
-#define HDTREE_CONVEX_POLYGON_HPP
+#ifndef KDTREE_CONVEX_POLYGON_HPP
+#define KDTREE_CONVEX_POLYGON_HPP
 
 #include "point.hpp"
 #include <algorithm>
@@ -7,15 +7,15 @@
 #include <stdexcept>
 #include <vector>
 
-namespace {
-template <typename T> using point = kdtree::point<T, 2>;
+namespace kdtree {
+namespace detail {
 
-template <typename T> double relative_location(point<T> p0, point<T> p1, point<T> p2) {
+template <typename T> double relative_location(point<T, 2> p0, point<T, 2> p1, point<T, 2> p2) {
   return ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]));
 }
-} // namespace
 
-namespace kdtree {
+} // namespace detail
+
 template <typename T> class convex_polygon {
 public:
   using point = kdtree::point<T, 2>;
@@ -73,7 +73,7 @@ template <typename T> void convex_polygon<T>::build_and_verify() {
   bool colinear = true;
   auto it = _points.cbegin();
   while (it < _points.cend() - 2) {
-    auto result = relative_location(*it, *(it + 1), *(it + 2));
+    auto result = detail::relative_location(*it, *(it + 1), *(it + 2));
     if (result < 0) {
       counterclockwise = false;
       colinear = false;
@@ -109,13 +109,13 @@ bool convex_polygon<T>::contains(convex_polygon<T>::point const &p) const noexce
       auto p1 = *(it + 1);
       if (p0[1] <= p[1]) {
         if (p1[1] > p[1]) {
-          if (relative_location(p0, p1, p) > 0) {
+          if (detail::relative_location(p0, p1, p) > 0) {
             ++winding_number;
           }
         }
       } else {
         if (p1[1] <= p[1]) {
-          if (relative_location(p0, p1, p) < 0) {
+          if (detail::relative_location(p0, p1, p) < 0) {
             --winding_number;
           }
         }
@@ -181,7 +181,7 @@ std::istream &operator>>(std::istream &is, kdtree::convex_polygon<T> &polygon) {
     // it should be impossible to reach this
     throw std::range_error(generate_error_message(']', c));
   }
-  if (points.size() > 0) {
+  if (!points.empty()) {
     polygon = kdtree::convex_polygon<T>(points.begin(), points.end());
   }
   return is;

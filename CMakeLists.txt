@@ -28,10 +28,10 @@ target_sources(kdtree INTERFACE
     FILE_SET HEADERS
     BASE_DIRS include
     FILES
-        include/kdtree.hpp
-        include/point.hpp
-        include/convex_polygon.hpp
-        include/point_in_polygon.hpp
+        include/kdtree/kdtree.hpp
+        include/kdtree/point.hpp
+        include/kdtree/convex_polygon.hpp
+        include/kdtree/point_in_polygon.hpp
 )
 
 # --- CLI tool ---

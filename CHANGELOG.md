@@ -23,6 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Minimum C++ standard is C++14 (unchanged, now declared via CMake)
 - Update .gitignore for CMake build directory
 - Update README with CMake build, test, and installation instructions
+- Move headers to `include/kdtree/` subdirectory for namespaced installation
+- Move internal helpers from anonymous namespace to `kdtree::detail` namespace
+- Derive distance type from point coordinate type instead of hardcoding `float`
+- Replace `std::pow(x, 2)` with `x * x` in squared distance computation
+- Replace two-pass radius query (range query + filter) with direct tree traversal
+- Improve point hash function from XOR to boost-style combiner
+- Reorder public API declarations so `nnsearch_kdtree` precedes `search_kdtree`
 
 ### Fixed
 - CLI `--version` output incorrectly identified as "Improved mRMR"
@@ -30,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - k-nearest neighbor pruning had the same squared-vs-linear distance bug
 - k-nearest neighbor result extraction used a dangling pointer after std::move (undefined behavior)
 - k-nearest neighbor sentinel iterator occupied a result slot, returning invalid end iterator and off-by-one count
+- Missing include guard on `point_in_polygon.hpp`
+- Incorrect include guard prefix `HDTREE_` on `point.hpp` and `convex_polygon.hpp`
+- Missing `#include "point.hpp"` in `point_in_polygon.hpp`
+- `nnsearch_kdtree` returned undefined iterator for empty ranges
+- `search_kdtree` dereferenced potentially invalid iterator from empty-range `nnsearch_kdtree`
 
 ## [1.0.0] - 2020-12-07
 

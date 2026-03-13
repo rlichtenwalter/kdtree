@@ -1,10 +1,9 @@
-#ifndef HDTREE_POINT_HPP
-#define HDTREE_POINT_HPP
+#ifndef KDTREE_POINT_HPP
+#define KDTREE_POINT_HPP
 
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <iostream>
@@ -73,18 +72,13 @@ public:
 
 template <class T, class U, std::size_t d>
 T squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2) {
-  /* AWAIT BETTER C++ 2020 SUPPORT
-  auto sum_function = []( auto accum, auto element ) { return accum + element; };
-  auto product_function = []( auto xi1, auto xi2 ) { return std::pow( xi1 - xi2, 2 ); };
-  return std::inner_product( first1, last1, first2, static_cast<distance_type>( 0 ), sum_function,
-  product_function )
-  */
   auto first1 = p1.cbegin();
   auto last1 = p1.cend();
   auto first2 = p2.cbegin();
   T dist = 0;
   while (first1 != last1) {
-    dist += std::pow(*first1 - *first2, 2);
+    auto diff = *first1 - *first2;
+    dist += diff * diff;
     ++first1;
     ++first2;
   }
@@ -161,7 +155,7 @@ template <typename T, std::size_t d> struct hash<kdtree::point<T, d>> {
   result_type operator()(argument_type const &key) const noexcept {
     result_type hash = 0;
     for (auto const xi : key) {
-      hash ^= std::hash<T>{}(xi);
+      hash ^= std::hash<T>{}(xi) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
     }
     return hash;
   }

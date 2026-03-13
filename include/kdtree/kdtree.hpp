@@ -3,7 +3,6 @@
 
 #include "point.hpp"
 #include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <iterator>
@@ -12,43 +11,22 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
-/*
-Eventually, because it's really easy to implement, the nearest neighbor functions should accept a
-distance function parameter.
-*/
-
-namespace {
+namespace kdtree {
+namespace detail {
 
 using dimension_type = std::size_t;
 using depth_type = std::size_t;
-using distance_type = float;
 
-dimension_type dimension(dimension_type dimensionality, depth_type depth) {
+inline dimension_type dimension(dimension_type dimensionality, depth_type depth) {
   return depth % dimensionality;
 }
 
-template <class InputIt1, class InputIt2>
-distance_type squared_euclidean_distance(InputIt1 first1, InputIt1 last1, InputIt2 first2) {
-  /* AWAIT BETTER C++ 2020 SUPPORT
-  auto sum_function = []( auto accum, auto element ) { return accum + element; };
-  auto product_function = []( auto xi1, auto xi2 ) { return std::pow( xi1 - xi2, 2 ); };
-  return std::inner_product( first1, last1, first2, static_cast<distance_type>( 0 ), sum_function,
-  product_function )
-  */
-  distance_type dist = 0;
-  while (first1 != last1) {
-    dist += std::pow(*first1 - *first2, 2);
-    ++first1;
-    ++first2;
-  }
-  return dist;
-}
-
-template <class RandomAccessIterator, class Point>
-void update_minimum_distance(RandomAccessIterator it, Point const &p, distance_type &mindist,
+template <class RandomAccessIterator, class Point, class DistanceType>
+void update_minimum_distance(RandomAccessIterator it, Point const &p, DistanceType &mindist,
                              RandomAccessIterator &closest) {
-  distance_type dist = squared_euclidean_distance(it->begin(), it->end(), p.begin());
+  auto dist = squared_euclidean_distance(*it, p);
   if (dist < mindist) {
     mindist = dist;
     closest = it;
@@ -58,7 +36,7 @@ void update_minimum_distance(RandomAccessIterator it, Point const &p, distance_t
 template <class RandomAccessIterator, class Point, class PriorityQueue>
 void update_priority_queue(RandomAccessIterator it, Point const &p, PriorityQueue &pq,
                            std::size_t k) {
-  distance_type dist = squared_euclidean_distance(it->begin(), it->end(), p.begin());
+  auto dist = squared_euclidean_distance(*it, p);
   if (pq.size() < k) {
     pq.emplace(dist, it);
   } else {
@@ -67,8 +45,6 @@ void update_priority_queue(RandomAccessIterator it, Point const &p, PriorityQueu
       pq.emplace(dist, it);
     }
   }
-  //		std::cerr << "\npq.size(): " << pq.size() << " - pq.top().first: " << pq.top().first
-  //<< " - dist: " << dist << '\n';
 }
 
 template <class Point>
@@ -117,15 +93,14 @@ void print_kdtree_helper(std::ostream &os, RandomAccessIterator begin, RandomAcc
   }
 }
 
-template <class RandomAccessIterator, class Point>
+template <class RandomAccessIterator, class Point, class DistanceType>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                            Point const &point, depth_type depth, distance_type &mindist,
+                            Point const &point, depth_type depth, DistanceType &mindist,
                             RandomAccessIterator &closest) {
   dimension_type dim = dimension(Point::dimensionality(), depth);
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
-    //			print_kdtree_node_helper( std::cerr, median, depth, n );
     if (n > 1) {
       // The median node is evaluated conditionally, gated on the same
       // pruning check as the opposite subtree. This is correct: the
@@ -210,45 +185,55 @@ void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator e
   }
 }
 
-} // namespace
+template <class RandomAccessIterator, class Point, class DistanceType>
+void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
+                               Point const &center, DistanceType squared_radius, depth_type depth,
+                               std::vector<RandomAccessIterator> &locations) {
+  std::size_t n = end - begin;
+  if (n == 0) {
+    return;
+  }
+  dimension_type dim = dimension(Point::dimensionality(), depth);
+  RandomAccessIterator median = begin + (n / 2);
 
-namespace kdtree {
+  if (squared_euclidean_distance(center, *median) <= squared_radius) {
+    locations.push_back(median);
+  }
+
+  if (n == 1) {
+    return;
+  }
+
+  auto gap = center[dim] - (*median)[dim];
+
+  if (gap <= 0) {
+    radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, locations);
+    if (gap * gap <= squared_radius) {
+      radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, locations);
+    }
+  } else {
+    radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, locations);
+    if (gap * gap <= squared_radius) {
+      radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, locations);
+    }
+  }
+}
+
+} // namespace detail
+
+// --- Public API ---
 
 template <class RandomAccessIterator>
 void make_kdtree(RandomAccessIterator begin, RandomAccessIterator end) {
   using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
-  using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
   static_assert(std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
-                "kdtree::make_kdtree( RandomAccessIterator begin, RandomAccessIterator end ) only "
-                "accepts random access iterators or raw pointers to an array.\n");
-  make_kdtree_helper(begin, end, 0);
+                "kdtree::make_kdtree only accepts random access iterators or raw pointers.\n");
+  detail::make_kdtree_helper(begin, end, 0);
 }
 
 template <class RandomAccessIterator>
 void print_kdtree(std::ostream &os, RandomAccessIterator begin, RandomAccessIterator end) {
-  print_kdtree_helper(os, begin, end, 0);
-}
-
-template <class RandomAccessIterator, class Point>
-RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
-                                   Point const &point) {
-  using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
-  using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
-  static_assert(
-      std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
-      "kdtree::search_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const & "
-      "point ) only accepts random access iterators or raw pointers to an array.\n");
-  static_assert(std::is_convertible<Point, value_type>::value,
-                "kdtree::search_kdtree( RandomAccessIterator begin, RandomAccessIterator end, "
-                "Point point ) only accepts Point types that are convertible to the value_type of "
-                "the passed RandomAccessIterators.\n");
-  //		using point_iterator_tag = typename std::iterator_traits<Point>::iterator_category;
-  //		static_assert( std::is_convertible< point_iterator_tag,
-  // std::random_access_iterator_tag >::value, "kdtree::search_kdtree( RandomAccessIterator begin,
-  // RandomAccessIterator end, Point const & point ) only accepts Point types that offer random
-  // access iterators or raw pointers to an array.\n" );
-  RandomAccessIterator it = nnsearch_kdtree(begin, end, point);
-  return point == *it ? it : end;
+  detail::print_kdtree_helper(os, begin, end, 0);
 }
 
 template <class RandomAccessIterator, class Point>
@@ -256,17 +241,18 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
                                      Point const &point) {
   using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
   using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
+  static_assert(std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
+                "kdtree::nnsearch_kdtree only accepts random access iterators or raw pointers.\n");
   static_assert(
-      std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
-      "kdtree::nnsearch_kdtree( RandomAccessIterator begin, RandomAccessIterator end, Point const "
-      "& point ) only accepts random access iterators or raw pointers to an array.\n");
-  static_assert(std::is_convertible<Point, value_type>::value,
-                "kdtree::nnsearch_kdtree( RandomAccessIterator begin, RandomAccessIterator end, "
-                "Point point ) only accepts Point types that are convertible to the value_type of "
-                "the passed RandomAccessIterators.\n");
-  distance_type distance = std::numeric_limits<distance_type>::max();
+      std::is_convertible<Point, value_type>::value,
+      "kdtree::nnsearch_kdtree requires Point convertible to the iterator's value_type.\n");
+  if (begin == end) {
+    return end;
+  }
+  using coordinate_type = typename Point::coordinate_type;
+  coordinate_type distance = std::numeric_limits<coordinate_type>::max();
   RandomAccessIterator location = end;
-  nnsearch_kdtree_helper(begin, end, point, 0, distance, location);
+  detail::nnsearch_kdtree_helper(begin, end, point, 0, distance, location);
   return location;
 }
 
@@ -277,21 +263,19 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
   using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
   using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
   static_assert(std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
-                "kdtree::nnsearch_kdtree( RandomAccessIterator begin, RandomAccessIterator end, "
-                "Point const & point, std::size_t k ) only accepts random access iterators or raw "
-                "pointers to an array.\n");
-  static_assert(std::is_convertible<Point, value_type>::value,
-                "kdtree::nnsearch_kdtree( RandomAccessIterator begin, RandomAccessIterator end, "
-                "Point point, std::size_t k ) only accepts Point types that are convertible to the "
-                "value_type of the passed RandomAccessIterators.\n");
-  using pq_data_package = typename std::pair<distance_type, RandomAccessIterator>;
+                "kdtree::nnsearch_kdtree only accepts random access iterators or raw pointers.\n");
+  static_assert(
+      std::is_convertible<Point, value_type>::value,
+      "kdtree::nnsearch_kdtree requires Point convertible to the iterator's value_type.\n");
+  using coordinate_type = typename Point::coordinate_type;
+  using pq_data_package = typename std::pair<coordinate_type, RandomAccessIterator>;
   auto pq_compare = [](pq_data_package const &lhs, pq_data_package const &rhs) {
     return lhs.first < rhs.first;
   };
   using vector = std::vector<pq_data_package>;
   using pq_type = std::priority_queue<pq_data_package, vector, decltype(pq_compare)>;
   pq_type pq(pq_compare);
-  nnsearch_kdtree_helper(begin, end, point, k, 0, pq);
+  detail::nnsearch_kdtree_helper(begin, end, point, k, 0, pq);
   std::vector<RandomAccessIterator> result;
   result.reserve(pq.size());
   while (!pq.empty()) {
@@ -302,11 +286,27 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
 }
 
 template <class RandomAccessIterator, class Point>
+RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
+                                   Point const &point) {
+  using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
+  using value_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
+  static_assert(std::is_convertible<iterator_tag, std::random_access_iterator_tag>::value,
+                "kdtree::search_kdtree only accepts random access iterators or raw pointers.\n");
+  static_assert(std::is_convertible<Point, value_type>::value,
+                "kdtree::search_kdtree requires Point convertible to the iterator's value_type.\n");
+  RandomAccessIterator it = nnsearch_kdtree(begin, end, point);
+  if (it == end) {
+    return end;
+  }
+  return point == *it ? it : end;
+}
+
+template <class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> rangequery_kdtree(RandomAccessIterator begin,
                                                     RandomAccessIterator end, Point const &min,
                                                     Point const &max) {
   std::vector<RandomAccessIterator> locations;
-  rangequery_kdtree_helper(begin, end, min, max, 0, locations);
+  detail::rangequery_kdtree_helper(begin, end, min, max, 0, locations);
   return locations;
 }
 
@@ -317,25 +317,7 @@ std::vector<RandomAccessIterator> radiusquery_kdtree(RandomAccessIterator begin,
   std::vector<RandomAccessIterator> locations;
   if (radius > 0) {
     auto squared_radius = radius * radius;
-    // compute points for range query
-    if (std::is_integral<typename Point::coordinate_type>::value) {
-      radius = std::ceil(radius);
-    }
-    Point min(point);
-    Point max(point);
-    for (auto &val : min) {
-      val -= radius;
-    }
-    for (auto &val : max) {
-      val += radius;
-    }
-    locations = rangequery_kdtree(begin, end, min, max);
-    auto postlast =
-        std::remove_if(locations.begin(), locations.end(), [&point, squared_radius](auto const &p) {
-          return kdtree::squared_euclidean_distance(point, *p) > squared_radius;
-        });
-    // resize the container to exclude removed elements
-    locations.resize(postlast - locations.cbegin());
+    detail::radiusquery_kdtree_helper(begin, end, point, squared_radius, 0, locations);
   }
   return locations;
 }

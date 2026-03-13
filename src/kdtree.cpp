@@ -1,5 +1,3 @@
-#include "../include/kdtree.hpp"
-#include "../include/point.hpp"
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -10,6 +8,8 @@
 #include <getopt.h>
 #include <iomanip>
 #include <iostream>
+#include <kdtree/kdtree.hpp>
+#include <kdtree/point.hpp>
 #include <limits>
 #include <list>
 #include <stack>

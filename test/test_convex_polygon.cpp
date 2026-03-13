@@ -4,8 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <convex_polygon.hpp>
-#include <point.hpp>
+#include <kdtree/convex_polygon.hpp>
+#include <kdtree/point.hpp>
 
 // Note: convex_polygon.hpp leaks a 'point' alias from an anonymous namespace.
 // Use fully qualified names to avoid ambiguity.

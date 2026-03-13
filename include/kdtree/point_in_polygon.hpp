@@ -1,5 +1,11 @@
+#ifndef KDTREE_POINT_IN_POLYGON_HPP
+#define KDTREE_POINT_IN_POLYGON_HPP
 
-namespace {
+#include "point.hpp"
+
+namespace kdtree {
+namespace detail {
+
 template <class Point2d> double relative_location_2d(Point2d p0, Point2d p1, Point2d p2) {
   return ((p1[0] - p0[0]) * (p2[1] - p0[1]) - (p2[0] - p0[0]) * (p1[1] - p0[1]));
 }
@@ -29,12 +35,13 @@ int winding_number_2d(Point2d const &point, RandomAccessIterator begin, RandomAc
   return winding_number;
 }
 
-} // namespace
-
-namespace kdtree {
+} // namespace detail
 
 template <class Point2d, class RandomAccessIterator>
 bool point_in_polygon(Point2d const &p, RandomAccessIterator begin, RandomAccessIterator end) {
-  return winding_number_2d(p, begin, end) != 0;
+  return detail::winding_number_2d(p, begin, end) != 0;
 }
+
 } // namespace kdtree
+
+#endif

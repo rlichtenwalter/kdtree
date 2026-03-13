@@ -6,7 +6,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <point.hpp>
+#include <kdtree/point.hpp>
 
 using Catch::Matchers::WithinAbs;
 
@@ -261,13 +261,9 @@ TEST_CASE("point hash: can be used in unordered_set", "[point][hash]") {
   REQUIRE(s.size() == 2);
 }
 
-TEST_CASE("point hash: permuted coordinates should ideally differ", "[point][hash]") {
-  // Note: the current XOR-based hash produces identical hashes for
-  // permuted coordinates. This test documents the known weakness.
+TEST_CASE("point hash: permuted coordinates produce different hashes", "[point][hash]") {
   kdtree::point<int, 2> a(1, 2);
   kdtree::point<int, 2> b(2, 1);
   std::hash<kdtree::point<int, 2>> hasher;
-  // These SHOULD differ for a good hash, but currently don't.
-  // When the hash is fixed, change REQUIRE to REQUIRE_FALSE.
-  REQUIRE(hasher(a) == hasher(b));
+  REQUIRE(hasher(a) != hasher(b));
 }

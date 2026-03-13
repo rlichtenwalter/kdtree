@@ -41,6 +41,13 @@ find_package(kdtree REQUIRED)
 target_link_libraries(your_target PRIVATE kdtree::kdtree)
 ```
 
+Then include headers with the `kdtree/` prefix:
+
+```cpp
+#include <kdtree/kdtree.hpp>
+#include <kdtree/point.hpp>
+```
+
 Or via pkg-config:
 
 ```bash
