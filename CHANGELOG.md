@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - CLI `--version` output incorrectly identified as "Improved mRMR"
+- Nearest neighbor pruning compared squared distance as linear distance against splitting plane gap, causing incorrect results for close floating-point queries
+- k-nearest neighbor pruning had the same squared-vs-linear distance bug
+- k-nearest neighbor result extraction used a dangling pointer after std::move (undefined behavior)
+- k-nearest neighbor sentinel iterator occupied a result slot, returning invalid end iterator and off-by-one count
 
 ## [1.0.0] - 2020-12-07
 

@@ -120,27 +120,19 @@ namespace {
 //			print_kdtree_node_helper( std::cerr, median, depth, n );
 			if( n > 1 ) {
 				if( point[ dim ] <= (*median)[ dim ] ) {
-//					std::cerr << " - heading left\n";
 					nnsearch_kdtree_helper( begin, median, point, depth + 1, mindist, closest );
-					if( point[ dim ] + mindist >= (*median)[ dim ] ) {
+					auto gap = (*median)[ dim ] - point[ dim ];
+					if( gap * gap <= mindist ) {
 						update_minimum_distance( median, point, mindist, closest );
-//						print_kdtree_node_helper( std::cerr, median, depth, n );
-//						std::cerr << " - mindist: " << mindist << " - heading right\n";
 						nnsearch_kdtree_helper( median + 1, end, point, depth + 1, mindist, closest );
 					}
-//					print_kdtree_node_helper( std::cerr, median, depth, n );
-//					std::cerr << " - mindist: " << mindist << " - heading up\n";
 				} else {
-//					std::cerr << " - heading right\n";
 					nnsearch_kdtree_helper( median + 1, end, point, depth + 1, mindist, closest );
-					if( point[ dim ] - mindist <= (*median)[ dim ] ) {
+					auto gap = point[ dim ] - (*median)[ dim ];
+					if( gap * gap <= mindist ) {
 						update_minimum_distance( median, point, mindist, closest );
-//						print_kdtree_node_helper( std::cerr, median, depth, n );
-//						std::cerr << " - mindist: " << mindist << " - heading left\n";
 						nnsearch_kdtree_helper( begin, median, point, depth + 1, mindist, closest );
 					}
-//					print_kdtree_node_helper( std::cerr, median, depth, n );
-//					std::cerr << " - mindist: " << mindist << " - heading up\n";
 				}
 			} else if( n == 1 ) {
 				update_minimum_distance( median, point, mindist, closest );
@@ -158,31 +150,22 @@ namespace {
 //			print_kdtree_node_helper( std::cerr, median, depth, n );
 			if( n > 1 ) {
 				if( point[ dim ] <= (*median)[ dim ] ) {
-//					std::cerr << " - heading left\n";
 					nnsearch_kdtree_helper( begin, median, point, k, depth + 1, pq );
-					if( point[ dim ] + pq.top().first >= (*median)[ dim ] ) {
+					auto gap = (*median)[ dim ] - point[ dim ];
+					if( pq.size() < k || gap * gap <= pq.top().first ) {
 						update_priority_queue( median, point, pq, k );
-//						print_kdtree_node_helper( std::cerr, median, depth, n );
-//						std::cerr << " - pq.top().first: " << pq.top().first << " - heading right\n";
 						nnsearch_kdtree_helper( median + 1, end, point, k, depth + 1, pq );
 					}
-//					print_kdtree_node_helper( std::cerr, median, depth, n );
-//					std::cerr << " - pq.top().first: " << pq.top().first << " - heading up\n";
 				} else {
-//					std::cerr << " - heading right\n";
 					nnsearch_kdtree_helper( median + 1, end, point, k, depth + 1, pq );
-					if( point[ dim ] - pq.top().first <= (*median)[ dim ] ) {
+					auto gap = point[ dim ] - (*median)[ dim ];
+					if( pq.size() < k || gap * gap <= pq.top().first ) {
 						update_priority_queue( median, point, pq, k );
-//						print_kdtree_node_helper( std::cerr, median, depth, n );
-//						std::cerr << " - pq.top().first: " << pq.top().first << " - heading left\n";
 						nnsearch_kdtree_helper( begin, median, point, k, depth + 1, pq );
 					}
-//					print_kdtree_node_helper( std::cerr, median, depth, n );
-//					std::cerr << " - pq.top().first: " << pq.top().first << " - heading up\n";
 				}
 			} else if( n == 1 ) {
 				update_priority_queue( median, point, pq, k );
-//				std::cerr << " - pq.top().first: " << pq.top().first << " - heading up\n";
 			}
 		}
 	}
@@ -260,17 +243,14 @@ namespace kdtree {
 		auto pq_compare = []( pq_data_package const & lhs, pq_data_package const & rhs ) { return lhs.first < rhs.first; };
 		using vector = std::vector<pq_data_package>;
 		using pq_type = std::priority_queue< pq_data_package, vector, decltype(pq_compare) >;
-		vector pq_storage;
-		pq_storage.reserve( k );
-		pq_data_package const * cheap_access = &pq_storage[0];
-		pq_type pq( pq_compare, std::move( pq_storage ) );
-		pq.emplace( std::numeric_limits<distance_type>::max(), end );
+		pq_type pq( pq_compare );
 		nnsearch_kdtree_helper( begin, end, point, k, 0, pq );
-//		std::cerr << "FINAL pq.size(): " << pq.size() << " - FINAL pq.top().first: " << pq.top().first << "\n";
-//		std::cerr << "pq_storage.size(): " << pq_storage.size() << "\n";
 		std::vector<RandomAccessIterator> result;
 		result.reserve( pq.size() );
-		std::transform( cheap_access, cheap_access + pq.size(), std::back_inserter( result ), []( auto const & val ) { return val.second; } );
+		while( !pq.empty() ) {
+			result.push_back( pq.top().second );
+			pq.pop();
+		}
 		return result;
 	}
 
