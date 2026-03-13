@@ -8,5 +8,45 @@ Second, and relatedly, it is written to be extremely memory efficient and to enj
 
 ## Building
 
-1. Enter project top-level directory, and type `make`.
-2. At the moment, there is no `install` target, so include files incorporating the main header-only k-d tree library must use one of various methods to directly reference the header file by path (e.g. compiler `-I` flag, full `#include` path).
+```bash
+cmake -B build
+cmake --build build
+```
+
+To build in debug mode with sanitizers:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+```
+
+## Testing
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+## Installation
+
+```bash
+cmake -B build -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake --build build
+cmake --install build
+```
+
+After installation, downstream projects can use:
+
+```cmake
+find_package(kdtree REQUIRED)
+target_link_libraries(your_target PRIVATE kdtree::kdtree)
+```
+
+Or via pkg-config:
+
+```bash
+pkg-config --cflags kdtree
+```
+
+## License
+
+MIT

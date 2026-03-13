@@ -17,7 +17,9 @@
 #include "../include/kdtree.hpp"
 #include "../include/point.hpp"
 
-std::string VERSION_STRING = "0.1 (beta)";
+#ifndef KDTREE_VERSION
+#define KDTREE_VERSION "unknown"
+#endif
 
 enum verbosity_level : char {
 	QUIET = 0,
@@ -131,7 +133,7 @@ int main( int argc, char* argv[] ) {
 				usage( argv[0] );
 				return 0;
 			case 'V':
-				std::cout << "Improved mRMR by Ryan N. Lichtenwalter v" << VERSION_STRING << "\n";
+				std::cout << "kdtree by Ryan N. Lichtenwalter v" << KDTREE_VERSION << "\n";
 				return 0;
 			default:
 				short_usage( argv[0] );
