@@ -35,7 +35,7 @@ target_sources(kdtree INTERFACE
 )
 
 # --- CLI tool ---
-add_executable(kdtree-cli src/kdtree.cpp)
+add_executable(kdtree-cli tools/kdtree-cli.cpp)
 target_link_libraries(kdtree-cli PRIVATE kdtree::kdtree)
 target_compile_definitions(kdtree-cli PRIVATE
     KDTREE_VERSION="${PROJECT_VERSION}"
