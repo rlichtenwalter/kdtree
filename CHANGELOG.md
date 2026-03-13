@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+- CMake install support with `find_package(kdtree)` for downstream consumers
+- pkg-config support for non-CMake consumers
+- CTest integration for test executables
+- Comprehensive Catch2 v3 unit test suite covering point, kdtree, convex_polygon, and point_in_polygon
+- clang-format configuration (LLVM base style) for consistent code formatting
+- clang-tidy configuration for static analysis
+- CI lint job for format checking and static analysis
+- Gitea Actions CI workflow for build and test on push/PR
+- CLI version string sourced from VERSION file via CMake
+
+### Changed
+- Replace Makefile with CMake build system
+- Minimum C++ standard is C++14 (unchanged, now declared via CMake)
+- Update .gitignore for CMake build directory
+- Update README with CMake build, test, and installation instructions
+
+### Fixed
+- CLI `--version` output incorrectly identified as "Improved mRMR"
+- Nearest neighbor pruning compared squared distance as linear distance against splitting plane gap, causing incorrect results for close floating-point queries
+- k-nearest neighbor pruning had the same squared-vs-linear distance bug
+- k-nearest neighbor result extraction used a dangling pointer after std::move (undefined behavior)
+- k-nearest neighbor sentinel iterator occupied a result slot, returning invalid end iterator and off-by-one count
 
 ## [1.0.0] - 2020-12-07
 
