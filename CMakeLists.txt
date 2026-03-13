@@ -17,7 +17,7 @@ include(GNUInstallDirs)
 add_library(kdtree INTERFACE)
 add_library(kdtree::kdtree ALIAS kdtree)
 
-target_compile_features(kdtree INTERFACE cxx_std_17)
+target_compile_features(kdtree INTERFACE cxx_std_14)
 
 target_include_directories(kdtree INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

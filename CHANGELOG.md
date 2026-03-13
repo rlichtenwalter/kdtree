@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Replace Makefile with CMake build system
-- Bump minimum C++ standard from C++14 to C++17
+- Minimum C++ standard is C++14 (unchanged, now declared via CMake)
 - Update .gitignore for CMake build directory
 - Update README with CMake build, test, and installation instructions
 

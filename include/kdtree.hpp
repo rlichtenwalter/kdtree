@@ -127,6 +127,11 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
     RandomAccessIterator median = begin + (n / 2);
     //			print_kdtree_node_helper( std::cerr, median, depth, n );
     if (n > 1) {
+      // The median node is evaluated conditionally, gated on the same
+      // pruning check as the opposite subtree. This is correct: the
+      // median sits on the splitting hyperplane, so its squared distance
+      // in the splitting dimension is exactly gap^2. If gap^2 > mindist,
+      // the median cannot be closer than the current best.
       if (point[dim] <= (*median)[dim]) {
         nnsearch_kdtree_helper(begin, median, point, depth + 1, mindist, closest);
         auto gap = (*median)[dim] - point[dim];
@@ -144,7 +149,6 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
       }
     } else if (n == 1) {
       update_minimum_distance(median, point, mindist, closest);
-      //				std::cerr << " - mindist: " << mindist << " - heading up\n";
     }
   }
 }
@@ -157,8 +161,10 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
-    //			print_kdtree_node_helper( std::cerr, median, depth, n );
     if (n > 1) {
+      // See comment in the 1-NN overload above regarding conditional
+      // median evaluation. The pq.size() < k guard ensures we always
+      // explore both subtrees until k candidates have been collected.
       if (point[dim] <= (*median)[dim]) {
         nnsearch_kdtree_helper(begin, median, point, k, depth + 1, pq);
         auto gap = (*median)[dim] - point[dim];
@@ -238,9 +244,9 @@ RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessItera
                 "the passed RandomAccessIterators.\n");
   //		using point_iterator_tag = typename std::iterator_traits<Point>::iterator_category;
   //		static_assert( std::is_convertible< point_iterator_tag,
-  //std::random_access_iterator_tag >::value, "kdtree::search_kdtree( RandomAccessIterator begin,
-  //RandomAccessIterator end, Point const & point ) only accepts Point types that offer random
-  //access iterators or raw pointers to an array.\n" );
+  // std::random_access_iterator_tag >::value, "kdtree::search_kdtree( RandomAccessIterator begin,
+  // RandomAccessIterator end, Point const & point ) only accepts Point types that offer random
+  // access iterators or raw pointers to an array.\n" );
   RandomAccessIterator it = nnsearch_kdtree(begin, end, point);
   return point == *it ? it : end;
 }
