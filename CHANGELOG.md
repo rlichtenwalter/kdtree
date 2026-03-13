@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - pkg-config support for non-CMake consumers
 - CTest integration for test executables
 - Comprehensive Catch2 v3 unit test suite covering point, kdtree, convex_polygon, and point_in_polygon
+- clang-format configuration (LLVM base style) for consistent code formatting
+- clang-tidy configuration for static analysis
+- CI lint job for format checking and static analysis
 - Gitea Actions CI workflow for build and test on push/PR
 - CLI version string sourced from VERSION file via CMake
 

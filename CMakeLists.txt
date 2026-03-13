@@ -9,6 +9,8 @@ project(kdtree
     DESCRIPTION "Header-only C++ k-d tree library with STL container adaptor interface"
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 include(GNUInstallDirs)
 
 # --- Library (header-only) ---
