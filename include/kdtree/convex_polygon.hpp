@@ -16,6 +16,18 @@ template <typename T> double relative_location(point<T, 2> p0, point<T, 2> p1, p
 
 } // namespace detail
 
+/**
+ * @brief A convex polygon in 2D space.
+ *
+ * Stores vertices in counterclockwise order. Clockwise input is automatically
+ * normalized. Construction validates convexity and rejects degenerate cases
+ * (fewer than 3 vertices, collinear vertices, non-convex vertex sequences).
+ *
+ * Provides point-in-polygon containment testing via the winding number
+ * algorithm.
+ *
+ * @tparam T Coordinate type of the polygon's vertices.
+ */
 template <typename T> class convex_polygon {
 public:
   using point = kdtree::point<T, 2>;
@@ -40,7 +52,10 @@ public:
   convex_polygon(InputIterator begin, InputIterator end) : _points(begin, end) {
     build_and_verify();
   }
+  /** @brief Return the number of vertices. */
   size_type size() const noexcept { return _points.size() - 1; }
+
+  /** @brief Test whether a point lies inside the polygon (winding number). */
   bool contains(point const &p) const noexcept;
 
   iterator begin() noexcept { return _points.begin(); }

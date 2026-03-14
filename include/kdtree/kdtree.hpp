@@ -292,10 +292,20 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
 
 // --- Public API ---
 
-// Build a k-d tree in-place over the range [begin, end). LeafThreshold controls
-// the bucket size at which recursion stops and leaves are left unsorted. The
-// default (0) auto-selects a threshold based on point size and cache line width.
-// Use LeafThreshold=1 for the classic fully-recursive construction.
+/**
+ * @brief Build a k-d tree in-place over the range [begin, end).
+ *
+ * Rearranges elements using std::nth_element so that the midpoint of each
+ * subrange is the median along the cycling splitting dimension. The resulting
+ * layout is an implicit balanced binary tree: no auxiliary data structure is
+ * allocated.
+ *
+ * @tparam LeafThreshold Bucket size below which recursion stops (0 = auto).
+ *         The default auto-selects based on point size and cache line width.
+ *         Use 1 for classic fully-recursive construction.
+ * @param begin Iterator to the first element.
+ * @param end Iterator past the last element.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator>
 void make_kdtree(RandomAccessIterator begin, RandomAccessIterator end) {
   using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
@@ -307,15 +317,26 @@ void make_kdtree(RandomAccessIterator begin, RandomAccessIterator end) {
   detail::make_kdtree_helper<threshold>(begin, end, 0);
 }
 
+/**
+ * @brief Print the k-d tree structure to an output stream.
+ *
+ * Produces a human-readable indented representation showing each node's
+ * coordinates, splitting depth, and subtree size.
+ */
 template <class RandomAccessIterator>
 void print_kdtree(std::ostream &os, RandomAccessIterator begin, RandomAccessIterator end) {
   detail::print_kdtree_helper(os, begin, end, 0);
 }
 
-// Query functions accept an optional LeafThreshold template parameter that must
-// match the value used during construction. The default (0) auto-selects the
-// same threshold that make_kdtree uses by default.
-
+/**
+ * @brief Find the nearest neighbor in a constructed k-d tree.
+ *
+ * @tparam LeafThreshold Must match the value used during construction (0 = auto).
+ * @param begin Iterator to the first element of the constructed tree.
+ * @param end Iterator past the last element.
+ * @param point The query point.
+ * @return Iterator to the nearest neighbor, or @p end if the range is empty.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
                                      Point const &point) {
@@ -338,6 +359,16 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
   return location;
 }
 
+/**
+ * @brief Find the k nearest neighbors in a constructed k-d tree.
+ *
+ * @tparam LeafThreshold Must match the value used during construction (0 = auto).
+ * @param begin Iterator to the first element of the constructed tree.
+ * @param end Iterator past the last element.
+ * @param point The query point.
+ * @param k Number of nearest neighbors to find.
+ * @return Vector of iterators to the k nearest neighbors (unordered).
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
                                                   RandomAccessIterator end, Point const &point,
@@ -369,6 +400,14 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
   return result;
 }
 
+/**
+ * @brief Search for an exact match in a constructed k-d tree.
+ *
+ * Finds the nearest neighbor and returns it only if it is exactly equal
+ * to @p point. Returns @p end if no exact match exists.
+ *
+ * @tparam LeafThreshold Must match the value used during construction (0 = auto).
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
                                    Point const &point) {
@@ -385,9 +424,19 @@ RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessItera
   return point == *it ? it : end;
 }
 
-// Output-iterator overloads: write results directly to the caller's output
-// iterator, avoiding internal allocation. Callers can reuse storage across
-// repeated queries by clearing a vector and passing std::back_inserter.
+/**
+ * @brief Find all points within an axis-aligned bounding box (output iterator).
+ *
+ * Writes iterators to matching points through @p out. Callers can reuse
+ * storage across repeated queries by clearing a vector and passing
+ * std::back_inserter.
+ *
+ * @tparam LeafThreshold Must match the value used during construction (0 = auto).
+ * @param min Lower corner of the bounding box (inclusive).
+ * @param max Upper corner of the bounding box (inclusive).
+ * @param out Output iterator receiving iterators to matching points.
+ * @return The output iterator after all results have been written.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point, class OutputIt>
 OutputIt rangequery_kdtree(RandomAccessIterator begin, RandomAccessIterator end, Point const &min,
                            Point const &max, OutputIt out) {
@@ -398,6 +447,15 @@ OutputIt rangequery_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
   return out;
 }
 
+/**
+ * @brief Find all points within a given radius of a center point (output iterator).
+ *
+ * @tparam LeafThreshold Must match the value used during construction (0 = auto).
+ * @param point The center of the search sphere.
+ * @param radius Search radius (must be positive; returns nothing if <= 0).
+ * @param out Output iterator receiving iterators to matching points.
+ * @return The output iterator after all results have been written.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point, class OutputIt>
 OutputIt radiusquery_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
                             Point const &point, typename Point::coordinate_type radius,
@@ -412,8 +470,10 @@ OutputIt radiusquery_kdtree(RandomAccessIterator begin, RandomAccessIterator end
   return out;
 }
 
-// Convenience overloads: return results in a new vector. For repeated queries,
-// prefer the output-iterator overloads above to avoid per-call allocation.
+/** @brief Find all points within an axis-aligned bounding box.
+ *  @return Vector of iterators to matching points.
+ *  @see rangequery_kdtree(begin, end, min, max, out) for the allocation-free overload.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> rangequery_kdtree(RandomAccessIterator begin,
                                                     RandomAccessIterator end, Point const &min,
@@ -423,6 +483,10 @@ std::vector<RandomAccessIterator> rangequery_kdtree(RandomAccessIterator begin,
   return locations;
 }
 
+/** @brief Find all points within a given radius of a center point.
+ *  @return Vector of iterators to matching points.
+ *  @see radiusquery_kdtree(begin, end, point, radius, out) for the allocation-free overload.
+ */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> radiusquery_kdtree(RandomAccessIterator begin,
                                                      RandomAccessIterator end, Point const &point,

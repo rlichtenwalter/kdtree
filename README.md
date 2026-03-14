@@ -31,7 +31,19 @@ ctest --test-dir build --output-on-failure
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-./build/test/bench_kdtree
+
+# Run all benchmarks
+./build/test/bench_kdtree "[!benchmark]"
+
+# Run a specific category
+./build/test/bench_kdtree "[!benchmark][construction]"
+./build/test/bench_kdtree "[!benchmark][nn]"
+./build/test/bench_kdtree "[!benchmark][knn]"
+./build/test/bench_kdtree "[!benchmark][range]"
+./build/test/bench_kdtree "[!benchmark][radius]"
+
+# Increase sample count for more stable results
+./build/test/bench_kdtree "[!benchmark]" --benchmark-samples 50
 ```
 
 ## Installation
