@@ -70,11 +70,29 @@ public:
   const_reverse_iterator crend() const noexcept { return _coordinates.crend(); }
 };
 
+// Same-type overload: preferred by overload resolution when both points share a
+// coordinate type. The index-based loop with compile-time-constant bound enables
+// compiler auto-vectorization and full unrolling.
 template <class T, std::size_t d>
 T squared_euclidean_distance(point<T, d> const &p1, point<T, d> const &p2) {
   T dist = 0;
   for (std::size_t i = 0; i < d; ++i) {
     T diff = p1[i] - p2[i];
+    dist += diff * diff;
+  }
+  return dist;
+}
+
+// Mixed-type overload: supports distance between points with different coordinate
+// types (e.g., point<int,2> and point<double,2>). The return type is the common
+// type produced by subtracting the two coordinate types.
+template <class T, class U, std::size_t d>
+auto squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2)
+    -> decltype(T{} - U{}) {
+  using result_type = decltype(T{} - U{});
+  result_type dist = 0;
+  for (std::size_t i = 0; i < d; ++i) {
+    result_type diff = p1[i] - p2[i];
     dist += diff * diff;
   }
   return dist;
