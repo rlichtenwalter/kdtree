@@ -39,6 +39,14 @@ void update_minimum_distance(RandomAccessIterator it, Point const &p, DistanceTy
   }
 }
 
+// Compare pairs by their first element (distance). Used as the comparator for
+// the kNN max-heap so the most distant candidate is at the front.
+struct compare_by_distance {
+  template <class T> bool operator()(T const &lhs, T const &rhs) const {
+    return lhs.first < rhs.first;
+  }
+};
+
 // Maintain a max-heap of the k closest candidates. If fewer than k have been
 // found, insert unconditionally. Otherwise, replace the worst (front) only if
 // the new point is closer. pop_heap moves the max to the back; we overwrite it
@@ -285,12 +293,9 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
   using heap_entry = std::pair<coordinate_type, RandomAccessIterator>;
   // Max-heap: largest distance at front, so we can efficiently replace
   // the worst candidate when a closer point is found.
-  auto heap_compare = [](heap_entry const &lhs, heap_entry const &rhs) {
-    return lhs.first < rhs.first;
-  };
   std::vector<heap_entry> heap;
   heap.reserve(k);
-  detail::nnsearch_kdtree_helper(begin, end, point, k, 0, heap, heap_compare);
+  detail::nnsearch_kdtree_helper(begin, end, point, k, 0, heap, detail::compare_by_distance{});
   // Extract iterators directly from the heap vector — O(k) instead of
   // O(k log k) priority queue drain.
   std::vector<RandomAccessIterator> result;
