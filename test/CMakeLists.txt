@@ -26,6 +26,12 @@ add_executable(test_point_in_polygon test_point_in_polygon.cpp)
 target_link_libraries(test_point_in_polygon PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
 catch_discover_tests(test_point_in_polygon)
 
+# --- Benchmarks ---
+
+add_executable(bench_kdtree bench_kdtree.cpp)
+target_link_libraries(bench_kdtree PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
+target_compile_options(bench_kdtree PRIVATE -O3)
+
 # --- CLI integration tests ---
 
 set(CLI $<TARGET_FILE:kdtree-cli>)

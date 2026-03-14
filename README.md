@@ -26,6 +26,14 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+## Benchmarks
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+./build/test/bench_kdtree
+```
+
 ## Installation
 
 ```bash
