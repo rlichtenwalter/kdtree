@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Replace two-pass radius query (range query + filter) with direct tree traversal
 - Improve point hash function from XOR to boost-style combiner
 - Reorder public API declarations so `nnsearch_kdtree` precedes `search_kdtree`
+- Move CLI tool from `src/` to `tools/` to follow header-only library conventions
+- Rewrite CLI tool: fix verbosity parser, file error handling, input parsing, and help text
 
 ### Fixed
 - CLI `--version` output incorrectly identified as "Improved mRMR"
@@ -42,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Missing `#include "point.hpp"` in `point_in_polygon.hpp`
 - `nnsearch_kdtree` returned undefined iterator for empty ranges
 - `search_kdtree` dereferenced potentially invalid iterator from empty-range `nnsearch_kdtree`
+- CLI verbosity levels 2 and 3 were unreachable by numeric argument (copy-paste error)
+- CLI silently fell back to stdin when specified file could not be opened
+- CLI file-read loop pushed a garbage point after the last valid one on EOF
+- CLI accepted undocumented `-w` option
+- CLI `log_message` timer stack could become unbalanced across verbosity levels
+- CLI help text typo "exist" instead of "exit"
+- CLI `-t` delimiter option was parsed but never used (removed)
 
 ## [1.0.0] - 2020-12-07
 
