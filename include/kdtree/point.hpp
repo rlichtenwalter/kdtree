@@ -70,17 +70,12 @@ public:
   const_reverse_iterator crend() const noexcept { return _coordinates.crend(); }
 };
 
-template <class T, class U, std::size_t d>
-T squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2) {
-  auto first1 = p1.cbegin();
-  auto last1 = p1.cend();
-  auto first2 = p2.cbegin();
+template <class T, std::size_t d>
+T squared_euclidean_distance(point<T, d> const &p1, point<T, d> const &p2) {
   T dist = 0;
-  while (first1 != last1) {
-    auto diff = *first1 - *first2;
+  for (std::size_t i = 0; i < d; ++i) {
+    T diff = p1[i] - p2[i];
     dist += diff * diff;
-    ++first1;
-    ++first2;
   }
   return dist;
 }

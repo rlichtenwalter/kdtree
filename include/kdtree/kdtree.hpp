@@ -63,7 +63,9 @@ void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, de
   std::size_t n = end - begin;
   if (n > 1) {
     RandomAccessIterator median = begin + (n / 2);
-    auto comp = [dim](auto lhs, auto rhs) { return *(lhs.begin() + dim) < *(rhs.begin() + dim); };
+    auto comp = [dim](auto const &lhs, auto const &rhs) {
+      return *(lhs.begin() + dim) < *(rhs.begin() + dim);
+    };
     std::nth_element(begin, median, end, comp);
     make_kdtree_helper(begin, median, depth + 1);
     make_kdtree_helper(median + 1, end, depth + 1);
