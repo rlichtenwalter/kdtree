@@ -391,6 +391,26 @@ TEST_CASE("rangequery_kdtree 3D", "[kdtree][range]") {
   }
 }
 
+TEST_CASE("rangequery_kdtree output iterator overload", "[kdtree][range]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 1}, {2, 2}, {3, 3}, {10, 10}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> lower(0, 0);
+  kdtree::point<int, 2> upper(5, 5);
+
+  // Use output iterator with pre-allocated vector
+  std::vector<decltype(data.cbegin())> results;
+  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper,
+                            std::back_inserter(results));
+  REQUIRE(results.size() == 3);
+
+  // Verify reuse: clear and query again without reallocation
+  results.clear();
+  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper,
+                            std::back_inserter(results));
+  REQUIRE(results.size() == 3);
+}
+
 // ============================================================
 // radiusquery_kdtree
 // ============================================================
@@ -447,6 +467,25 @@ TEST_CASE("radiusquery_kdtree matches brute force", "[kdtree][radius]") {
     }
   }
   REQUIRE(results.size() == brute_count);
+}
+
+TEST_CASE("radiusquery_kdtree output iterator overload", "[kdtree][radius]") {
+  std::vector<kdtree::point<int, 2>> data = {{0, 0}, {1, 0}, {0, 1}, {3, 3}, {-5, -5}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> center(0, 0);
+  double radius = 1.5;
+
+  std::vector<decltype(data.cbegin())> results;
+  kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius,
+                             std::back_inserter(results));
+  REQUIRE(results.size() == 3);
+
+  // Verify reuse
+  results.clear();
+  kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius,
+                             std::back_inserter(results));
+  REQUIRE(results.size() == 3);
 }
 
 // ============================================================

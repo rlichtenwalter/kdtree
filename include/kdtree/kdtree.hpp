@@ -163,10 +163,9 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
   }
 }
 
-template <class RandomAccessIterator, class Point>
+template <class RandomAccessIterator, class Point, class OutputIt>
 void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                              Point const &min, Point const &max, depth_type depth,
-                              std::vector<RandomAccessIterator> &locations) {
+                              Point const &min, Point const &max, depth_type depth, OutputIt &out) {
   dimension_type dim = dimension(Point::dimensionality(), depth);
   std::size_t n = end - begin;
   if (n > 0) {
@@ -174,23 +173,23 @@ void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator e
     bool left_oob = min[dim] > (*median)[dim];
     bool right_oob = max[dim] < (*median)[dim];
     if (!left_oob) {
-      rangequery_kdtree_helper(begin, median, min, max, depth + 1, locations);
+      rangequery_kdtree_helper(begin, median, min, max, depth + 1, out);
     }
     if (!right_oob) {
-      rangequery_kdtree_helper(median + 1, end, min, max, depth + 1, locations);
+      rangequery_kdtree_helper(median + 1, end, min, max, depth + 1, out);
     }
     if (!left_oob && !right_oob) {
       if (hypercube_contains(min, max, *median)) {
-        locations.push_back(median);
+        *out++ = median;
       }
     }
   }
 }
 
-template <class RandomAccessIterator, class Point, class DistanceType>
+template <class RandomAccessIterator, class Point, class DistanceType, class OutputIt>
 void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
                                Point const &center, DistanceType squared_radius, depth_type depth,
-                               std::vector<RandomAccessIterator> &locations) {
+                               OutputIt &out) {
   std::size_t n = end - begin;
   if (n == 0) {
     return;
@@ -199,7 +198,7 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
   RandomAccessIterator median = begin + (n / 2);
 
   if (squared_euclidean_distance(center, *median) <= squared_radius) {
-    locations.push_back(median);
+    *out++ = median;
   }
 
   if (n == 1) {
@@ -209,14 +208,14 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
   auto gap = center[dim] - (*median)[dim];
 
   if (gap <= 0) {
-    radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, locations);
+    radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, out);
     if (gap * gap <= squared_radius) {
-      radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, locations);
+      radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, out);
     }
   } else {
-    radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, locations);
+    radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, out);
     if (gap * gap <= squared_radius) {
-      radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, locations);
+      radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, out);
     }
   }
 }
@@ -303,12 +302,34 @@ RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessItera
   return point == *it ? it : end;
 }
 
+// Output-iterator overloads: write results directly to the caller's output
+// iterator, avoiding internal allocation. Callers can reuse storage across
+// repeated queries by clearing a vector and passing std::back_inserter.
+template <class RandomAccessIterator, class Point, class OutputIt>
+OutputIt rangequery_kdtree(RandomAccessIterator begin, RandomAccessIterator end, Point const &min,
+                           Point const &max, OutputIt out) {
+  detail::rangequery_kdtree_helper(begin, end, min, max, 0, out);
+  return out;
+}
+
+template <class RandomAccessIterator, class Point, class OutputIt>
+OutputIt radiusquery_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
+                            Point const &point, double radius, OutputIt out) {
+  if (radius > 0) {
+    auto squared_radius = radius * radius;
+    detail::radiusquery_kdtree_helper(begin, end, point, squared_radius, 0, out);
+  }
+  return out;
+}
+
+// Convenience overloads: return results in a new vector. For repeated queries,
+// prefer the output-iterator overloads above to avoid per-call allocation.
 template <class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> rangequery_kdtree(RandomAccessIterator begin,
                                                     RandomAccessIterator end, Point const &min,
                                                     Point const &max) {
   std::vector<RandomAccessIterator> locations;
-  detail::rangequery_kdtree_helper(begin, end, min, max, 0, locations);
+  rangequery_kdtree(begin, end, min, max, std::back_inserter(locations));
   return locations;
 }
 
@@ -317,10 +338,7 @@ std::vector<RandomAccessIterator> radiusquery_kdtree(RandomAccessIterator begin,
                                                      RandomAccessIterator end, Point const &point,
                                                      double radius) {
   std::vector<RandomAccessIterator> locations;
-  if (radius > 0) {
-    auto squared_radius = radius * radius;
-    detail::radiusquery_kdtree_helper(begin, end, point, squared_radius, 0, locations);
-  }
+  radiusquery_kdtree(begin, end, point, radius, std::back_inserter(locations));
   return locations;
 }
 
