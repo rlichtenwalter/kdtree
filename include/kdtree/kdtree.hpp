@@ -7,7 +7,6 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <queue>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -33,16 +32,18 @@ void update_minimum_distance(RandomAccessIterator it, Point const &p, DistanceTy
   }
 }
 
-template <class RandomAccessIterator, class Point, class PriorityQueue>
-void update_priority_queue(RandomAccessIterator it, Point const &p, PriorityQueue &pq,
-                           std::size_t k) {
+template <class RandomAccessIterator, class Point, class Heap, class Compare>
+void update_heap(RandomAccessIterator it, Point const &p, Heap &heap, std::size_t k,
+                 Compare const &comp) {
   auto dist = squared_euclidean_distance(*it, p);
-  if (pq.size() < k) {
-    pq.emplace(dist, it);
+  if (heap.size() < k) {
+    heap.emplace_back(dist, it);
+    std::push_heap(heap.begin(), heap.end(), comp);
   } else {
-    if (dist < pq.top().first) {
-      pq.pop();
-      pq.emplace(dist, it);
+    if (dist < heap.front().first) {
+      std::pop_heap(heap.begin(), heap.end(), comp);
+      heap.back() = {dist, it};
+      std::push_heap(heap.begin(), heap.end(), comp);
     }
   }
 }
@@ -59,7 +60,8 @@ bool hypercube_contains(Point const &lower, Point const &upper, Point const &nee
 
 template <class RandomAccessIterator>
 void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, depth_type depth) {
-  dimension_type dim = dimension(begin->dimensionality(), depth);
+  using point_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
+  dimension_type dim = dimension(point_type::dimensionality(), depth);
   std::size_t n = end - begin;
   if (n > 1) {
     RandomAccessIterator median = begin + (n / 2);
@@ -130,35 +132,35 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
   }
 }
 
-template <class RandomAccessIterator, class Point, class PriorityQueue>
+template <class RandomAccessIterator, class Point, class Heap, class Compare>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                            Point const &point, std::size_t k, depth_type depth,
-                            PriorityQueue &pq) {
+                            Point const &point, std::size_t k, depth_type depth, Heap &heap,
+                            Compare const &comp) {
   dimension_type dim = dimension(Point::dimensionality(), depth);
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
     if (n > 1) {
       // See comment in the 1-NN overload above regarding conditional
-      // median evaluation. The pq.size() < k guard ensures we always
+      // median evaluation. The heap.size() < k guard ensures we always
       // explore both subtrees until k candidates have been collected.
       if (point[dim] <= (*median)[dim]) {
-        nnsearch_kdtree_helper(begin, median, point, k, depth + 1, pq);
+        nnsearch_kdtree_helper(begin, median, point, k, depth + 1, heap, comp);
         auto gap = (*median)[dim] - point[dim];
-        if (pq.size() < k || gap * gap <= pq.top().first) {
-          update_priority_queue(median, point, pq, k);
-          nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, pq);
+        if (heap.size() < k || gap * gap <= heap.front().first) {
+          update_heap(median, point, heap, k, comp);
+          nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, heap, comp);
         }
       } else {
-        nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, pq);
+        nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, heap, comp);
         auto gap = point[dim] - (*median)[dim];
-        if (pq.size() < k || gap * gap <= pq.top().first) {
-          update_priority_queue(median, point, pq, k);
-          nnsearch_kdtree_helper(begin, median, point, k, depth + 1, pq);
+        if (heap.size() < k || gap * gap <= heap.front().first) {
+          update_heap(median, point, heap, k, comp);
+          nnsearch_kdtree_helper(begin, median, point, k, depth + 1, heap, comp);
         }
       }
     } else if (n == 1) {
-      update_priority_queue(median, point, pq, k);
+      update_heap(median, point, heap, k, comp);
     }
   }
 }
@@ -269,19 +271,21 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
       std::is_convertible<Point, value_type>::value,
       "kdtree::nnsearch_kdtree requires Point convertible to the iterator's value_type.\n");
   using coordinate_type = typename Point::coordinate_type;
-  using pq_data_package = typename std::pair<coordinate_type, RandomAccessIterator>;
-  auto pq_compare = [](pq_data_package const &lhs, pq_data_package const &rhs) {
+  using heap_entry = std::pair<coordinate_type, RandomAccessIterator>;
+  // Max-heap: largest distance at front, so we can efficiently replace
+  // the worst candidate when a closer point is found.
+  auto heap_compare = [](heap_entry const &lhs, heap_entry const &rhs) {
     return lhs.first < rhs.first;
   };
-  using vector = std::vector<pq_data_package>;
-  using pq_type = std::priority_queue<pq_data_package, vector, decltype(pq_compare)>;
-  pq_type pq(pq_compare);
-  detail::nnsearch_kdtree_helper(begin, end, point, k, 0, pq);
+  std::vector<heap_entry> heap;
+  heap.reserve(k);
+  detail::nnsearch_kdtree_helper(begin, end, point, k, 0, heap, heap_compare);
+  // Extract iterators directly from the heap vector — O(k) instead of
+  // O(k log k) priority queue drain.
   std::vector<RandomAccessIterator> result;
-  result.reserve(pq.size());
-  while (!pq.empty()) {
-    result.push_back(pq.top().second);
-    pq.pop();
+  result.reserve(heap.size());
+  for (auto const &entry : heap) {
+    result.push_back(entry.second);
   }
   return result;
 }
@@ -314,7 +318,8 @@ OutputIt rangequery_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
 
 template <class RandomAccessIterator, class Point, class OutputIt>
 OutputIt radiusquery_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
-                            Point const &point, double radius, OutputIt out) {
+                            Point const &point, typename Point::coordinate_type radius,
+                            OutputIt out) {
   if (radius > 0) {
     auto squared_radius = radius * radius;
     detail::radiusquery_kdtree_helper(begin, end, point, squared_radius, 0, out);
@@ -336,7 +341,7 @@ std::vector<RandomAccessIterator> rangequery_kdtree(RandomAccessIterator begin,
 template <class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> radiusquery_kdtree(RandomAccessIterator begin,
                                                      RandomAccessIterator end, Point const &point,
-                                                     double radius) {
+                                                     typename Point::coordinate_type radius) {
   std::vector<RandomAccessIterator> locations;
   radiusquery_kdtree(begin, end, point, radius, std::back_inserter(locations));
   return locations;
