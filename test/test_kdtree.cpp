@@ -78,7 +78,8 @@ TEST_CASE("make_kdtree preserves all elements", "[kdtree][make]") {
 
 TEST_CASE("make_kdtree median element satisfies partition property", "[kdtree][make]") {
   std::vector<kdtree::point<int, 2>> data = {{1, 3}, {5, 1}, {3, 7}, {0, 4}, {8, 2}};
-  kdtree::make_kdtree(data.begin(), data.end());
+  // Use LeafThreshold=1 to force full recursive partitioning
+  kdtree::make_kdtree<1>(data.begin(), data.end());
 
   // Root median is at index n/2 = 2, split on dim 0
   auto median = data[2];
