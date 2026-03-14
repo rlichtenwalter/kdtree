@@ -32,6 +32,10 @@ void update_minimum_distance(RandomAccessIterator it, Point const &p, DistanceTy
   }
 }
 
+// Maintain a max-heap of the k closest candidates. If fewer than k have been
+// found, insert unconditionally. Otherwise, replace the worst (front) only if
+// the new point is closer. pop_heap moves the max to the back; we overwrite it
+// and push_heap restores the invariant.
 template <class RandomAccessIterator, class Point, class Heap, class Compare>
 void update_heap(RandomAccessIterator it, Point const &p, Heap &heap, std::size_t k,
                  Compare const &comp) {
@@ -39,12 +43,10 @@ void update_heap(RandomAccessIterator it, Point const &p, Heap &heap, std::size_
   if (heap.size() < k) {
     heap.emplace_back(dist, it);
     std::push_heap(heap.begin(), heap.end(), comp);
-  } else {
-    if (dist < heap.front().first) {
-      std::pop_heap(heap.begin(), heap.end(), comp);
-      heap.back() = {dist, it};
-      std::push_heap(heap.begin(), heap.end(), comp);
-    }
+  } else if (dist < heap.front().first) {
+    std::pop_heap(heap.begin(), heap.end(), comp);
+    heap.back() = {dist, it};
+    std::push_heap(heap.begin(), heap.end(), comp);
   }
 }
 
