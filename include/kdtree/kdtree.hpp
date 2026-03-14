@@ -18,6 +18,13 @@ namespace detail {
 using dimension_type = std::size_t;
 using depth_type = std::size_t;
 
+// Compile-time constant divisor guarantees optimal codegen: bitwise AND for
+// power-of-two d, multiply-by-reciprocal for other values.
+template <std::size_t d> inline dimension_type next_dimension(dimension_type dim) {
+  return (dim + 1) % d;
+}
+
+// Runtime dimension cycling for non-performance-critical paths (e.g., printing).
 inline dimension_type dimension(dimension_type dimensionality, depth_type depth) {
   return depth % dimensionality;
 }
@@ -61,9 +68,9 @@ bool hypercube_contains(Point const &lower, Point const &upper, Point const &nee
 }
 
 template <class RandomAccessIterator>
-void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, depth_type depth) {
+void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, dimension_type dim) {
   using point_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
-  dimension_type dim = dimension(point_type::dimensionality(), depth);
+  constexpr auto d = point_type::dimensionality();
   std::size_t n = end - begin;
   if (n > 1) {
     RandomAccessIterator median = begin + (n / 2);
@@ -71,8 +78,8 @@ void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, de
       return *(lhs.begin() + dim) < *(rhs.begin() + dim);
     };
     std::nth_element(begin, median, end, comp);
-    make_kdtree_helper(begin, median, depth + 1);
-    make_kdtree_helper(median + 1, end, depth + 1);
+    make_kdtree_helper(begin, median, next_dimension<d>(dim));
+    make_kdtree_helper(median + 1, end, next_dimension<d>(dim));
   }
 }
 
@@ -101,9 +108,9 @@ void print_kdtree_helper(std::ostream &os, RandomAccessIterator begin, RandomAcc
 
 template <class RandomAccessIterator, class Point, class DistanceType>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                            Point const &point, depth_type depth, DistanceType &mindist,
+                            Point const &point, dimension_type dim, DistanceType &mindist,
                             RandomAccessIterator &closest) {
-  dimension_type dim = dimension(Point::dimensionality(), depth);
+  constexpr auto d = Point::dimensionality();
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
@@ -114,18 +121,18 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
       // in the splitting dimension is exactly gap^2. If gap^2 > mindist,
       // the median cannot be closer than the current best.
       if (point[dim] <= (*median)[dim]) {
-        nnsearch_kdtree_helper(begin, median, point, depth + 1, mindist, closest);
+        nnsearch_kdtree_helper(begin, median, point, next_dimension<d>(dim), mindist, closest);
         auto gap = (*median)[dim] - point[dim];
         if (gap * gap <= mindist) {
           update_minimum_distance(median, point, mindist, closest);
-          nnsearch_kdtree_helper(median + 1, end, point, depth + 1, mindist, closest);
+          nnsearch_kdtree_helper(median + 1, end, point, next_dimension<d>(dim), mindist, closest);
         }
       } else {
-        nnsearch_kdtree_helper(median + 1, end, point, depth + 1, mindist, closest);
+        nnsearch_kdtree_helper(median + 1, end, point, next_dimension<d>(dim), mindist, closest);
         auto gap = point[dim] - (*median)[dim];
         if (gap * gap <= mindist) {
           update_minimum_distance(median, point, mindist, closest);
-          nnsearch_kdtree_helper(begin, median, point, depth + 1, mindist, closest);
+          nnsearch_kdtree_helper(begin, median, point, next_dimension<d>(dim), mindist, closest);
         }
       }
     } else if (n == 1) {
@@ -136,9 +143,9 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
 
 template <class RandomAccessIterator, class Point, class Heap, class Compare>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                            Point const &point, std::size_t k, depth_type depth, Heap &heap,
+                            Point const &point, std::size_t k, dimension_type dim, Heap &heap,
                             Compare const &comp) {
-  dimension_type dim = dimension(Point::dimensionality(), depth);
+  constexpr auto d = Point::dimensionality();
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
@@ -147,18 +154,18 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
       // median evaluation. The heap.size() < k guard ensures we always
       // explore both subtrees until k candidates have been collected.
       if (point[dim] <= (*median)[dim]) {
-        nnsearch_kdtree_helper(begin, median, point, k, depth + 1, heap, comp);
+        nnsearch_kdtree_helper(begin, median, point, k, next_dimension<d>(dim), heap, comp);
         auto gap = (*median)[dim] - point[dim];
         if (heap.size() < k || gap * gap <= heap.front().first) {
           update_heap(median, point, heap, k, comp);
-          nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, heap, comp);
+          nnsearch_kdtree_helper(median + 1, end, point, k, next_dimension<d>(dim), heap, comp);
         }
       } else {
-        nnsearch_kdtree_helper(median + 1, end, point, k, depth + 1, heap, comp);
+        nnsearch_kdtree_helper(median + 1, end, point, k, next_dimension<d>(dim), heap, comp);
         auto gap = point[dim] - (*median)[dim];
         if (heap.size() < k || gap * gap <= heap.front().first) {
           update_heap(median, point, heap, k, comp);
-          nnsearch_kdtree_helper(begin, median, point, k, depth + 1, heap, comp);
+          nnsearch_kdtree_helper(begin, median, point, k, next_dimension<d>(dim), heap, comp);
         }
       }
     } else if (n == 1) {
@@ -169,18 +176,19 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
 
 template <class RandomAccessIterator, class Point, class OutputIt>
 void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                              Point const &min, Point const &max, depth_type depth, OutputIt &out) {
-  dimension_type dim = dimension(Point::dimensionality(), depth);
+                              Point const &min, Point const &max, dimension_type dim,
+                              OutputIt &out) {
+  constexpr auto d = Point::dimensionality();
   std::size_t n = end - begin;
   if (n > 0) {
     RandomAccessIterator median = begin + (n / 2);
     bool left_oob = min[dim] > (*median)[dim];
     bool right_oob = max[dim] < (*median)[dim];
     if (!left_oob) {
-      rangequery_kdtree_helper(begin, median, min, max, depth + 1, out);
+      rangequery_kdtree_helper(begin, median, min, max, next_dimension<d>(dim), out);
     }
     if (!right_oob) {
-      rangequery_kdtree_helper(median + 1, end, min, max, depth + 1, out);
+      rangequery_kdtree_helper(median + 1, end, min, max, next_dimension<d>(dim), out);
     }
     if (!left_oob && !right_oob) {
       if (hypercube_contains(min, max, *median)) {
@@ -192,13 +200,13 @@ void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator e
 
 template <class RandomAccessIterator, class Point, class DistanceType, class OutputIt>
 void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
-                               Point const &center, DistanceType squared_radius, depth_type depth,
+                               Point const &center, DistanceType squared_radius, dimension_type dim,
                                OutputIt &out) {
+  constexpr auto d = Point::dimensionality();
   std::size_t n = end - begin;
   if (n == 0) {
     return;
   }
-  dimension_type dim = dimension(Point::dimensionality(), depth);
   RandomAccessIterator median = begin + (n / 2);
 
   if (squared_euclidean_distance(center, *median) <= squared_radius) {
@@ -212,14 +220,15 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
   auto gap = center[dim] - (*median)[dim];
 
   if (gap <= 0) {
-    radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, out);
+    radiusquery_kdtree_helper(begin, median, center, squared_radius, next_dimension<d>(dim), out);
     if (gap * gap <= squared_radius) {
-      radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, out);
+      radiusquery_kdtree_helper(median + 1, end, center, squared_radius, next_dimension<d>(dim),
+                                out);
     }
   } else {
-    radiusquery_kdtree_helper(median + 1, end, center, squared_radius, depth + 1, out);
+    radiusquery_kdtree_helper(median + 1, end, center, squared_radius, next_dimension<d>(dim), out);
     if (gap * gap <= squared_radius) {
-      radiusquery_kdtree_helper(begin, median, center, squared_radius, depth + 1, out);
+      radiusquery_kdtree_helper(begin, median, center, squared_radius, next_dimension<d>(dim), out);
     }
   }
 }
