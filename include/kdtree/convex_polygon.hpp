@@ -105,8 +105,8 @@ bool convex_polygon<T>::contains(convex_polygon<T>::point const &p) const noexce
     int winding_number = 0;
     auto it = cbegin();
     while (it != cend()) {
-      auto p0 = *it;
-      auto p1 = *(it + 1);
+      auto const &p0 = *it;
+      auto const &p1 = *(it + 1);
       if (p0[1] <= p[1]) {
         if (p1[1] > p[1]) {
           if (detail::relative_location(p0, p1, p) > 0) {

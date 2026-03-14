@@ -15,7 +15,7 @@ int winding_number_2d(Point2d const &point, RandomAccessIterator begin, RandomAc
   int winding_number = 0;
   auto it = begin;
   while (it != end) {
-    auto p0 = *it;
+    auto const &p0 = *it;
     auto p1 = it + 1 == end ? *begin : *(it + 1);
     if (p0[1] <= point[1]) {
       if (p1[1] > point[1]) {
