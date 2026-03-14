@@ -1,5 +1,5 @@
+#include <cerrno>
 #include <chrono>
-#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fstream>
@@ -78,94 +78,99 @@ static void log_message(char const *message, verbosity_level verbosity, message_
 }
 
 int main(int argc, char *argv[]) {
-  std::ios_base::sync_with_stdio(false);
+  try {
+    std::ios_base::sync_with_stdio(false);
 
-  std::ifstream ifs;
+    std::ifstream ifs;
 
-  int c;
-  int option_index = 0;
-  while (true) {
-    static struct option long_options[] = {{"verbosity", required_argument, nullptr, 'v'},
-                                           {"help", no_argument, nullptr, 'h'},
-                                           {"version", no_argument, nullptr, 'V'},
-                                           {nullptr, 0, nullptr, 0}};
-    c = getopt_long(argc, argv, "v:hV", long_options, &option_index);
-    if (c == -1) {
-      break;
-    }
-    switch (c) {
-    case 'v':
-      if (strcmp(optarg, "0") == 0 || strcmp(optarg, "quiet") == 0) {
-        VERBOSITY = QUIET;
-      } else if (strcmp(optarg, "1") == 0 || strcmp(optarg, "warning") == 0) {
-        VERBOSITY = WARNING;
-      } else if (strcmp(optarg, "2") == 0 || strcmp(optarg, "info") == 0) {
-        VERBOSITY = INFO;
-      } else if (strcmp(optarg, "3") == 0 || strcmp(optarg, "debug") == 0) {
-        VERBOSITY = DEBUG;
-      } else {
-        std::cerr << argv[0]
-                  << ": -v, --verbosity=VALUE  one of {0,1,2,3,quiet,warning,info,debug}; "
-                     "defaults to 1=warning\n";
+    int c;
+    int option_index = 0;
+    while (true) {
+      static struct option long_options[] = {{"verbosity", required_argument, nullptr, 'v'},
+                                             {"help", no_argument, nullptr, 'h'},
+                                             {"version", no_argument, nullptr, 'V'},
+                                             {nullptr, 0, nullptr, 0}};
+      c = getopt_long(argc, argv, "v:hV", long_options, &option_index);
+      if (c == -1) {
+        break;
+      }
+      switch (c) {
+      case 'v':
+        if (strcmp(optarg, "0") == 0 || strcmp(optarg, "quiet") == 0) {
+          VERBOSITY = QUIET;
+        } else if (strcmp(optarg, "1") == 0 || strcmp(optarg, "warning") == 0) {
+          VERBOSITY = WARNING;
+        } else if (strcmp(optarg, "2") == 0 || strcmp(optarg, "info") == 0) {
+          VERBOSITY = INFO;
+        } else if (strcmp(optarg, "3") == 0 || strcmp(optarg, "debug") == 0) {
+          VERBOSITY = DEBUG;
+        } else {
+          std::cerr << argv[0]
+                    << ": -v, --verbosity=VALUE  one of {0,1,2,3,quiet,warning,info,debug}; "
+                       "defaults to 1=warning\n";
+          short_usage(argv[0]);
+          return 1;
+        }
+        break;
+      case 'h':
+        usage(argv[0]);
+        return 0;
+      case 'V':
+        std::cout << "kdtree by Ryan N. Lichtenwalter v" << KDTREE_VERSION << "\n";
+        return 0;
+      default:
         short_usage(argv[0]);
         return 1;
       }
-      break;
-    case 'h':
-      usage(argv[0]);
-      return 0;
-    case 'V':
-      std::cout << "kdtree by Ryan N. Lichtenwalter v" << KDTREE_VERSION << "\n";
-      return 0;
-    default:
-      short_usage(argv[0]);
-      return 1;
     }
-  }
-  if (optind < argc) {
-    if (optind == argc - 1) {
-      ifs = std::ifstream(argv[optind]);
-      if (!ifs.is_open()) {
-        std::cerr << argv[0] << ": " << argv[optind] << ": " << std::strerror(errno) << "\n";
+    if (optind < argc) {
+      if (optind == argc - 1) {
+        ifs = std::ifstream(argv[optind]);
+        if (!ifs.is_open()) {
+          std::cerr << argv[0] << ": " << argv[optind] << ": " << std::strerror(errno) << "\n";
+          return 1;
+        }
+        log_message((std::string("FILE = ") + std::string(argv[optind])).c_str(), DEBUG, STANDARD);
+      } else {
+        std::cerr << argv[0] << ": too many arguments\n";
+        short_usage(argv[0]);
         return 1;
       }
-      log_message((std::string("FILE = ") + std::string(argv[optind])).c_str(), DEBUG, STANDARD);
+    }
+
+    using point = kdtree::point<double, 2>;
+
+    std::vector<point> points;
+    log_message("Reading points...", INFO, START);
+    point p;
+    auto &input =
+        ifs.is_open() ? static_cast<std::istream &>(ifs) : static_cast<std::istream &>(std::cin);
+    if (ifs.is_open()) {
+      log_message("Reading from file...", DEBUG, STANDARD);
     } else {
-      std::cerr << argv[0] << ": too many arguments\n";
-      short_usage(argv[0]);
-      return 1;
+      log_message("Reading from standard input...", DEBUG, STANDARD);
     }
-  }
-
-  using point = kdtree::point<double, 2>;
-
-  std::vector<point> points;
-  log_message("Reading points...", INFO, START);
-  point p;
-  auto &input =
-      ifs.is_open() ? static_cast<std::istream &>(ifs) : static_cast<std::istream &>(std::cin);
-  if (ifs.is_open()) {
-    log_message("Reading from file...", DEBUG, STANDARD);
-  } else {
-    log_message("Reading from standard input...", DEBUG, STANDARD);
-  }
-  while (input >> std::ws && !input.eof()) {
-    try {
-      input >> p;
-      points.push_back(p);
-    } catch (std::range_error const &e) {
-      std::cerr << argv[0] << ": parse error: " << e.what() << "\n";
-      return 1;
+    while (input >> std::ws && !input.eof()) {
+      try {
+        input >> p;
+        points.push_back(p);
+      } catch (std::range_error const &e) {
+        std::cerr << argv[0] << ": parse error: " << e.what() << "\n";
+        return 1;
+      }
     }
+    log_message("DONE", INFO, FINISH);
+
+    // generate k-d tree data structure
+    log_message("Constructing k-d tree...", INFO, START);
+    kdtree::make_kdtree(points.begin(), points.end());
+    log_message("DONE", INFO, FINISH);
+
+    kdtree::print_kdtree(std::cout, points.begin(), points.end());
+
+    return 0;
+  } catch (std::exception const &e) {
+    std::cerr << argv[0] << ": fatal error: " << e.what() << "\n";
+    return 1;
   }
-  log_message("DONE", INFO, FINISH);
-
-  // generate k-d tree data structure
-  log_message("Constructing k-d tree...", INFO, START);
-  kdtree::make_kdtree(points.begin(), points.end());
-  log_message("DONE", INFO, FINISH);
-
-  kdtree::print_kdtree(std::cout, points.begin(), points.end());
-
-  return 0;
 }
