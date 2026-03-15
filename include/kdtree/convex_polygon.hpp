@@ -45,9 +45,9 @@ public:
   using const_reverse_iterator = typename storage_type::const_reverse_iterator;
 
   convex_polygon() : _points(1, point(T(0), T(0))) {}
-  template <class... T2> convex_polygon(T2... args) : _points{std::forward<T2>(args)...} {
-    build_and_verify();
-  }
+
+  /** @brief Construct from a brace-enclosed list of vertices. */
+  convex_polygon(std::initializer_list<point> pts) : _points(pts) { build_and_verify(); }
   template <class InputIterator>
   convex_polygon(InputIterator begin, InputIterator end) : _points(begin, end) {
     build_and_verify();
@@ -64,17 +64,15 @@ public:
   iterator end() noexcept { return _points.end() - 1; }
   const_iterator end() const noexcept { return _points.end() - 1; }
   const_iterator cend() const noexcept { return _points.cend() - 1; }
-  reverse_iterator rbegin() noexcept { return _points.rbegin(); }
-  const_reverse_iterator rbegin() const noexcept { return _points.rbegin(); }
-  const_reverse_iterator crbegin() const noexcept { return _points.crbegin(); }
-  reverse_iterator rend() noexcept { return _points.rend() - 1; }
-  const_reverse_iterator rend() const noexcept { return _points.rend() - 1; }
-  const_reverse_iterator crend() const noexcept { return _points.crend() - 1; }
+  reverse_iterator rbegin() noexcept { return _points.rbegin() + 1; }
+  const_reverse_iterator rbegin() const noexcept { return _points.rbegin() + 1; }
+  const_reverse_iterator crbegin() const noexcept { return _points.crbegin() + 1; }
+  reverse_iterator rend() noexcept { return _points.rend(); }
+  const_reverse_iterator rend() const noexcept { return _points.rend(); }
+  const_reverse_iterator crend() const noexcept { return _points.crend(); }
 };
 
 template <typename T> void convex_polygon<T>::build_and_verify() {
-  _points.reserve(_points.size() + 1);
-  _points.push_back(_points.front());
   auto generate_error_message = [](size_type count) {
     std::stringstream error_ss("kdtree::convex_polygon requires a minimum of 3 points but only ");
     error_ss << count << " were observed";
@@ -83,6 +81,8 @@ template <typename T> void convex_polygon<T>::build_and_verify() {
   if (_points.size() < 3) {
     throw std::out_of_range(generate_error_message(_points.size()));
   }
+  _points.reserve(_points.size() + 1);
+  _points.push_back(_points.front());
   bool counterclockwise = true;
   bool clockwise = true;
   bool colinear = true;

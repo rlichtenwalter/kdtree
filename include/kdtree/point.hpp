@@ -170,7 +170,7 @@ std::istream &operator>>(std::istream &is, kdtree::point<T, d> &p) {
   char c;
   is >> c;
   if (c != '(') {
-    throw std::range_error(generate_error_message('[', c));
+    throw std::range_error(generate_error_message('(', c));
   }
   if (d > 0) {
     for (auto it = p.begin(); it != p.end() - 1; ++it) {

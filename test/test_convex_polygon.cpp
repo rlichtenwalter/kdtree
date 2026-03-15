@@ -98,7 +98,7 @@ TEST_CASE("convex_polygon CW triangle has same containment as CCW", "[polygon][c
 // Iterators
 // ============================================================
 
-TEST_CASE("convex_polygon iterators traverse vertices", "[polygon][iterator]") {
+TEST_CASE("convex_polygon forward iterators traverse vertices", "[polygon][iterator]") {
   kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(2.0, 0.0), point(1.0, 2.0)};
 
   std::size_t count = 0;
@@ -106,6 +106,30 @@ TEST_CASE("convex_polygon iterators traverse vertices", "[polygon][iterator]") {
     ++count;
   }
   REQUIRE(count == poly.size());
+}
+
+TEST_CASE("convex_polygon reverse iterators traverse vertices in reverse", "[polygon][iterator]") {
+  point a(0.0, 0.0);
+  point b(2.0, 0.0);
+  point c(1.0, 2.0);
+  kdtree::convex_polygon<double> poly = {a, b, c};
+
+  // Collect vertices via reverse iteration
+  std::vector<point> reversed;
+  for (auto it = poly.rbegin(); it != poly.rend(); ++it) {
+    reversed.push_back(*it);
+  }
+
+  // Collect vertices via forward iteration
+  std::vector<point> forward;
+  for (auto it = poly.begin(); it != poly.end(); ++it) {
+    forward.push_back(*it);
+  }
+
+  // Reverse of forward should equal the reverse-iterated result
+  std::reverse(forward.begin(), forward.end());
+  REQUIRE(reversed == forward);
+  REQUIRE(reversed.size() == poly.size());
 }
 
 // ============================================================
