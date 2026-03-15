@@ -372,7 +372,8 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
  * @param end Iterator past the last element.
  * @param point The query point.
  * @param k Number of nearest neighbors to find.
- * @return Vector of iterators to the k nearest neighbors (unordered).
+ * @return Vector of iterators to the k nearest neighbors (unordered). If the
+ *         tree contains fewer than k points, all points are returned.
  */
 template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,

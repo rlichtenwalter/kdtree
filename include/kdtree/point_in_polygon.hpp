@@ -47,7 +47,8 @@ int winding_number_2d(Point2d const &point, RandomAccessIterator begin, RandomAc
  * @param p The query point.
  * @param begin Iterator to the first vertex of the polygon.
  * @param end Iterator past the last vertex of the polygon.
- * @return True if @p p is strictly inside the polygon.
+ * @return True if @p p is inside the polygon. Behavior for points exactly
+ *         on an edge or vertex is unspecified due to floating-point precision.
  */
 template <class Point2d, class RandomAccessIterator>
 bool point_in_polygon(Point2d const &p, RandomAccessIterator begin, RandomAccessIterator end) {
