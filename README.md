@@ -6,6 +6,40 @@ First, it presents a container adaptor interface that is idiomatic of C++ STL an
 
 Second, and relatedly, it is written to be extremely memory efficient and to enjoy efficiency gains from locality of reference and superior cache utilization. The underlying coordinate type is a template of the provided point type and allows for the selection of the most memory-efficient appropriate type. With respect to the minimal storage necessary to represent the points themselves, overhead during tree construction and search algorithm execution is limited to incidental automatic storage of primitive types, and the O(log(n)) stack depth necessary for the recursions, typically no more than a few KB of overhead for even extremely large data sets. Several potential algorithmic optimizations remain to be applied, but performance is nonetheless favorable compared to several tested implementations.
 
+## Usage
+
+```cpp
+#include <kdtree/kdtree.hpp>
+#include <kdtree/point.hpp>
+
+std::vector<kdtree::point<double, 2>> points = { ... };
+
+// Build the tree in-place
+kdtree::make_kdtree(points.begin(), points.end());
+
+// Nearest neighbor
+auto it = kdtree::nnsearch_kdtree(points.cbegin(), points.cend(), query);
+
+// k nearest neighbors
+auto knn = kdtree::nnsearch_kdtree(points.cbegin(), points.cend(), query, 10);
+
+// Range query
+auto range = kdtree::rangequery_kdtree(points.cbegin(), points.cend(), lower, upper);
+
+// Radius query
+auto radius = kdtree::radiusquery_kdtree(points.cbegin(), points.cend(), center, 50.0);
+```
+
+All functions accept an optional `LeafThreshold` template parameter that controls
+the bucket size for leaf nodes. The default auto-selects a value based on the
+point type and cache line size. If you override it, the same value must be used
+for construction and all subsequent queries:
+
+```cpp
+kdtree::make_kdtree<16>(points.begin(), points.end());
+auto it = kdtree::nnsearch_kdtree<16>(points.cbegin(), points.cend(), query);
+```
+
 ## Building
 
 ```bash
@@ -26,6 +60,26 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+## Benchmarks
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# Run all benchmarks
+./build/test/bench_kdtree "[!benchmark]"
+
+# Run a specific category
+./build/test/bench_kdtree "[!benchmark][construction]"
+./build/test/bench_kdtree "[!benchmark][nn]"
+./build/test/bench_kdtree "[!benchmark][knn]"
+./build/test/bench_kdtree "[!benchmark][range]"
+./build/test/bench_kdtree "[!benchmark][radius]"
+
+# Increase sample count for more stable results
+./build/test/bench_kdtree "[!benchmark]" --benchmark-samples 50
+```
+
 ## Installation
 
 ```bash
@@ -39,6 +93,13 @@ After installation, downstream projects can use:
 ```cmake
 find_package(kdtree REQUIRED)
 target_link_libraries(your_target PRIVATE kdtree::kdtree)
+```
+
+Then include headers with the `kdtree/` prefix:
+
+```cpp
+#include <kdtree/kdtree.hpp>
+#include <kdtree/point.hpp>
 ```
 
 Or via pkg-config:

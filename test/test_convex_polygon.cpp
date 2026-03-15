@@ -4,53 +4,50 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <convex_polygon.hpp>
-#include <point.hpp>
+#include <kdtree/convex_polygon.hpp>
+#include <kdtree/point.hpp>
 
-// Note: convex_polygon.hpp leaks a 'point' alias from an anonymous namespace.
-// Use fully qualified names to avoid ambiguity.
-using dpoint = kdtree::point<double, 2>;
+using point = kdtree::point<double, 2>;
 
 // ============================================================
 // Construction
 // ============================================================
 
 TEST_CASE("convex_polygon valid triangle CCW", "[polygon][construction]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(2.0, 0.0), dpoint(1.0, 2.0)};
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(2.0, 0.0), point(1.0, 2.0)};
   REQUIRE(poly.size() == 3);
 }
 
 TEST_CASE("convex_polygon valid triangle CW normalizes to CCW", "[polygon][construction]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(1.0, 2.0), dpoint(2.0, 0.0)};
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(1.0, 2.0), point(2.0, 0.0)};
   REQUIRE(poly.size() == 3);
 }
 
 TEST_CASE("convex_polygon valid quadrilateral", "[polygon][construction]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(2.0, 0.0), dpoint(2.0, 2.0),
-                                         dpoint(0.0, 2.0)};
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(2.0, 0.0), point(2.0, 2.0),
+                                         point(0.0, 2.0)};
   REQUIRE(poly.size() == 4);
 }
 
 TEST_CASE("convex_polygon from iterator range", "[polygon][construction]") {
-  std::vector<dpoint> pts = {dpoint(0.0, 0.0), dpoint(2.0, 0.0), dpoint(1.0, 2.0)};
+  std::vector<point> pts = {point(0.0, 0.0), point(2.0, 0.0), point(1.0, 2.0)};
   kdtree::convex_polygon<double> poly(pts.begin(), pts.end());
   REQUIRE(poly.size() == 3);
 }
 
 TEST_CASE("convex_polygon rejects fewer than 3 points", "[polygon][construction]") {
-  std::vector<dpoint> pts = {dpoint(0.0, 0.0), dpoint(1.0, 1.0)};
+  std::vector<point> pts = {point(0.0, 0.0), point(1.0, 1.0)};
   REQUIRE_THROWS(kdtree::convex_polygon<double>(pts.begin(), pts.end()));
 }
 
 TEST_CASE("convex_polygon rejects collinear points", "[polygon][construction]") {
-  std::vector<dpoint> pts = {dpoint(0.0, 0.0), dpoint(1.0, 1.0), dpoint(2.0, 2.0)};
+  std::vector<point> pts = {point(0.0, 0.0), point(1.0, 1.0), point(2.0, 2.0)};
   REQUIRE_THROWS_AS(kdtree::convex_polygon<double>(pts.begin(), pts.end()), std::runtime_error);
 }
 
 TEST_CASE("convex_polygon rejects non-convex polygon", "[polygon][construction]") {
   // A non-convex quadrilateral (bowtie / self-intersecting)
-  std::vector<dpoint> pts = {dpoint(0.0, 0.0), dpoint(2.0, 2.0), dpoint(2.0, 0.0),
-                             dpoint(0.0, 2.0)};
+  std::vector<point> pts = {point(0.0, 0.0), point(2.0, 2.0), point(2.0, 0.0), point(0.0, 2.0)};
   REQUIRE_THROWS_AS(kdtree::convex_polygon<double>(pts.begin(), pts.end()), std::runtime_error);
 }
 
@@ -59,37 +56,37 @@ TEST_CASE("convex_polygon rejects non-convex polygon", "[polygon][construction]"
 // ============================================================
 
 TEST_CASE("convex_polygon contains interior point", "[polygon][contains]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(4.0, 0.0), dpoint(4.0, 4.0),
-                                         dpoint(0.0, 4.0)};
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(4.0, 0.0), point(4.0, 4.0),
+                                         point(0.0, 4.0)};
 
-  REQUIRE(poly.contains(dpoint(2.0, 2.0)));
-  REQUIRE(poly.contains(dpoint(1.0, 1.0)));
-  REQUIRE(poly.contains(dpoint(3.5, 3.5)));
+  REQUIRE(poly.contains(point(2.0, 2.0)));
+  REQUIRE(poly.contains(point(1.0, 1.0)));
+  REQUIRE(poly.contains(point(3.5, 3.5)));
 }
 
 TEST_CASE("convex_polygon excludes exterior point", "[polygon][contains]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(4.0, 0.0), dpoint(4.0, 4.0),
-                                         dpoint(0.0, 4.0)};
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(4.0, 0.0), point(4.0, 4.0),
+                                         point(0.0, 4.0)};
 
-  REQUIRE_FALSE(poly.contains(dpoint(5.0, 5.0)));
-  REQUIRE_FALSE(poly.contains(dpoint(-1.0, 2.0)));
-  REQUIRE_FALSE(poly.contains(dpoint(2.0, -1.0)));
+  REQUIRE_FALSE(poly.contains(point(5.0, 5.0)));
+  REQUIRE_FALSE(poly.contains(point(-1.0, 2.0)));
+  REQUIRE_FALSE(poly.contains(point(2.0, -1.0)));
 }
 
 TEST_CASE("convex_polygon triangle containment", "[polygon][contains]") {
-  kdtree::convex_polygon<double> tri = {dpoint(0.0, 0.0), dpoint(2.0, 0.0), dpoint(1.0, 2.0)};
+  kdtree::convex_polygon<double> tri = {point(0.0, 0.0), point(2.0, 0.0), point(1.0, 2.0)};
 
-  REQUIRE(tri.contains(dpoint(1.0, 0.5)));        // interior
-  REQUIRE_FALSE(tri.contains(dpoint(2.0, 2.0)));  // exterior
-  REQUIRE_FALSE(tri.contains(dpoint(-1.0, 0.0))); // exterior
+  REQUIRE(tri.contains(point(1.0, 0.5)));        // interior
+  REQUIRE_FALSE(tri.contains(point(2.0, 2.0)));  // exterior
+  REQUIRE_FALSE(tri.contains(point(-1.0, 0.0))); // exterior
 }
 
 TEST_CASE("convex_polygon CW triangle has same containment as CCW", "[polygon][contains]") {
-  kdtree::convex_polygon<double> ccw = {dpoint(0.0, 0.0), dpoint(4.0, 0.0), dpoint(2.0, 4.0)};
-  kdtree::convex_polygon<double> cw = {dpoint(0.0, 0.0), dpoint(2.0, 4.0), dpoint(4.0, 0.0)};
+  kdtree::convex_polygon<double> ccw = {point(0.0, 0.0), point(4.0, 0.0), point(2.0, 4.0)};
+  kdtree::convex_polygon<double> cw = {point(0.0, 0.0), point(2.0, 4.0), point(4.0, 0.0)};
 
-  dpoint inside(2.0, 1.0);
-  dpoint outside(5.0, 5.0);
+  point inside(2.0, 1.0);
+  point outside(5.0, 5.0);
 
   REQUIRE(ccw.contains(inside));
   REQUIRE(cw.contains(inside));
@@ -101,14 +98,38 @@ TEST_CASE("convex_polygon CW triangle has same containment as CCW", "[polygon][c
 // Iterators
 // ============================================================
 
-TEST_CASE("convex_polygon iterators traverse vertices", "[polygon][iterator]") {
-  kdtree::convex_polygon<double> poly = {dpoint(0.0, 0.0), dpoint(2.0, 0.0), dpoint(1.0, 2.0)};
+TEST_CASE("convex_polygon forward iterators traverse vertices", "[polygon][iterator]") {
+  kdtree::convex_polygon<double> poly = {point(0.0, 0.0), point(2.0, 0.0), point(1.0, 2.0)};
 
   std::size_t count = 0;
   for (auto it = poly.begin(); it != poly.end(); ++it) {
     ++count;
   }
   REQUIRE(count == poly.size());
+}
+
+TEST_CASE("convex_polygon reverse iterators traverse vertices in reverse", "[polygon][iterator]") {
+  point a(0.0, 0.0);
+  point b(2.0, 0.0);
+  point c(1.0, 2.0);
+  kdtree::convex_polygon<double> poly = {a, b, c};
+
+  // Collect vertices via reverse iteration
+  std::vector<point> reversed;
+  for (auto it = poly.rbegin(); it != poly.rend(); ++it) {
+    reversed.push_back(*it);
+  }
+
+  // Collect vertices via forward iteration
+  std::vector<point> forward;
+  for (auto it = poly.begin(); it != poly.end(); ++it) {
+    forward.push_back(*it);
+  }
+
+  // Reverse of forward should equal the reverse-iterated result
+  std::reverse(forward.begin(), forward.end());
+  REQUIRE(reversed == forward);
+  REQUIRE(reversed.size() == poly.size());
 }
 
 // ============================================================

@@ -1,10 +1,9 @@
-#ifndef HDTREE_POINT_HPP
-#define HDTREE_POINT_HPP
+#ifndef KDTREE_POINT_HPP
+#define KDTREE_POINT_HPP
 
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <iostream>
@@ -14,6 +13,16 @@
 
 namespace kdtree {
 
+/**
+ * @brief A fixed-size point in d-dimensional space.
+ *
+ * Compositional facade over std::array providing contiguous storage with no
+ * dynamic allocation. Satisfies the RandomAccessIterator concept required by
+ * the k-d tree container adaptor functions.
+ *
+ * @tparam T Coordinate type (e.g., float, double, int).
+ * @tparam d Number of dimensions.
+ */
 template <typename T, std::size_t d> class point {
 private:
   using storage_type = std::array<T, d>;
@@ -28,8 +37,16 @@ public:
   using coordinate_type = T;
 
   point() = default;
+
+  /**
+   * @brief Construct a point from exactly d coordinate values.
+   *
+   * Enabled only when the number of arguments matches the dimensionality.
+   */
   template <class... T2, typename std::enable_if<sizeof...(T2) == d, int>::type = 0>
   point(T2... args) : _coordinates{std::forward<T2>(args)...} {}
+
+  /** @brief Return the number of dimensions (compile-time constant). */
   static constexpr typename storage_type::size_type dimensionality() noexcept { return d; }
 
   constexpr coordinate_type &operator[](size_type dimension) { return _coordinates[dimension]; }
@@ -40,6 +57,8 @@ public:
   bool operator==(point const &other) const {
     return std::equal(this->begin(), this->end(), other.begin(), other.end());
   }
+
+  /** @brief Lexicographic ordering over coordinates. */
   bool operator<(point const &other) const {
     return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
   }
@@ -71,26 +90,46 @@ public:
   const_reverse_iterator crend() const noexcept { return _coordinates.crend(); }
 };
 
-template <class T, class U, std::size_t d>
-T squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2) {
-  /* AWAIT BETTER C++ 2020 SUPPORT
-  auto sum_function = []( auto accum, auto element ) { return accum + element; };
-  auto product_function = []( auto xi1, auto xi2 ) { return std::pow( xi1 - xi2, 2 ); };
-  return std::inner_product( first1, last1, first2, static_cast<distance_type>( 0 ), sum_function,
-  product_function )
-  */
-  auto first1 = p1.cbegin();
-  auto last1 = p1.cend();
-  auto first2 = p2.cbegin();
+/**
+ * @brief Compute the squared Euclidean distance between two same-type points.
+ *
+ * Preferred overload when both points share a coordinate type. The index-based
+ * loop with compile-time-constant bound enables auto-vectorization.
+ *
+ * @return Sum of squared coordinate differences, as type T.
+ */
+template <class T, std::size_t d>
+T squared_euclidean_distance(point<T, d> const &p1, point<T, d> const &p2) {
   T dist = 0;
-  while (first1 != last1) {
-    dist += std::pow(*first1 - *first2, 2);
-    ++first1;
-    ++first2;
+  for (std::size_t i = 0; i < d; ++i) {
+    T diff = p1[i] - p2[i];
+    dist += diff * diff;
   }
   return dist;
 }
 
+/**
+ * @brief Compute the squared Euclidean distance between two mixed-type points.
+ *
+ * Supports distance between points with different coordinate types (e.g.,
+ * point<int,2> and point<double,2>). The return type is the common type
+ * produced by subtracting the two coordinate types.
+ */
+template <class T, class U, std::size_t d>
+auto squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2)
+    -> decltype(T{} - U{}) {
+  using result_type = decltype(T{} - U{});
+  result_type dist = 0;
+  for (std::size_t i = 0; i < d; ++i) {
+    result_type diff = p1[i] - p2[i];
+    dist += diff * diff;
+  }
+  return dist;
+}
+
+/**
+ * @brief Write a point in parenthesized format: (x1,x2,...,xd).
+ */
 template <typename T, std::size_t d>
 std::ostream &operator<<(std::ostream &os, kdtree::point<T, d> const &p) {
   os << '(';
@@ -104,6 +143,11 @@ std::ostream &operator<<(std::ostream &os, kdtree::point<T, d> const &p) {
   return os;
 }
 
+/**
+ * @brief Read a point from parenthesized format: (x1,x2,...,xd).
+ *
+ * @throws std::range_error If the input does not match the expected format.
+ */
 template <typename T, std::size_t d>
 std::istream &operator>>(std::istream &is, kdtree::point<T, d> &p) {
   auto generate_error_message = [](char c_expected, char c_given) {
@@ -126,7 +170,7 @@ std::istream &operator>>(std::istream &is, kdtree::point<T, d> &p) {
   char c;
   is >> c;
   if (c != '(') {
-    throw std::range_error(generate_error_message('[', c));
+    throw std::range_error(generate_error_message('(', c));
   }
   if (d > 0) {
     for (auto it = p.begin(); it != p.end() - 1; ++it) {
@@ -155,13 +199,14 @@ std::istream &operator>>(std::istream &is, kdtree::point<T, d> &p) {
 } // namespace kdtree
 
 namespace std {
+/** @brief Hash specialization for kdtree::point using boost-style combining. */
 template <typename T, std::size_t d> struct hash<kdtree::point<T, d>> {
   using argument_type = kdtree::point<T, d>;
   using result_type = std::size_t;
   result_type operator()(argument_type const &key) const noexcept {
     result_type hash = 0;
     for (auto const xi : key) {
-      hash ^= std::hash<T>{}(xi);
+      hash ^= std::hash<T>{}(xi) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
     }
     return hash;
   }

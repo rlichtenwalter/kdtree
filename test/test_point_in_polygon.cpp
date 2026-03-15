@@ -2,8 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <point.hpp>
-#include <point_in_polygon.hpp>
+#include <kdtree/point.hpp>
+#include <kdtree/point_in_polygon.hpp>
 
 using point = kdtree::point<double, 2>;
 
