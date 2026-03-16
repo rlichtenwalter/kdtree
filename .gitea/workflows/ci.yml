@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check formatting
+        run: clang-format --dry-run --Werror include/kdtree/*.hpp tools/*.cpp test/*.cpp
+
+      - name: Configure (for compile_commands.json)
+        run: cmake -B build
+
+      - name: Run clang-tidy
+        run: clang-tidy -p build include/kdtree/*.hpp tools/*.cpp --warnings-as-errors='*'

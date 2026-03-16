@@ -1,0 +1,7 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: kdtree
+Description: Header-only C++ k-d tree library with STL container adaptor interface
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir}
