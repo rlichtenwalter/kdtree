@@ -401,14 +401,12 @@ TEST_CASE("rangequery_kdtree output iterator overload", "[kdtree][range]") {
 
   // Use output iterator with pre-allocated vector
   std::vector<decltype(data.cbegin())> results;
-  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper,
-                            std::back_inserter(results));
+  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper, std::back_inserter(results));
   REQUIRE(results.size() == 3);
 
   // Verify reuse: clear and query again without reallocation
   results.clear();
-  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper,
-                            std::back_inserter(results));
+  kdtree::rangequery_kdtree(data.cbegin(), data.cend(), lower, upper, std::back_inserter(results));
   REQUIRE(results.size() == 3);
 }
 
