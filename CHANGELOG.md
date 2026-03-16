@@ -34,7 +34,7 @@ No changes yet.
 - **BREAKING**: Derive distance type from point coordinate type instead of hardcoding `float`
 - **BREAKING**: `radiusquery_kdtree` radius parameter type changed from `double` to `Point::coordinate_type`
 - **BREAKING**: New `LeafThreshold` template parameter added as first parameter on all public functions
-- Pin LLVM 20 toolchain in CI for clang-format and clang-tidy version consistency with development environment
+- Pin clang-format via pre-commit (`mirrors-clang-format` v20.1.8) and clang-tidy via pip (`clang-tidy` 20.1.0) for version consistency between development and CI
 - Replace Makefile with CMake build system
 - Minimum C++ standard is C++14 (unchanged, now declared via CMake)
 - Move internal helpers from anonymous namespace to `kdtree::detail` namespace
