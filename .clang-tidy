@@ -5,6 +5,7 @@ Checks: >
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,
   -modernize-avoid-c-arrays,
+  -modernize-type-traits,
   performance-*,
   readability-braces-around-statements,
   readability-container-size-empty,
@@ -14,6 +15,7 @@ Checks: >
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
   -misc-const-correctness,
+  -misc-use-anonymous-namespace,
 
 WarningsAsErrors: ''
 
