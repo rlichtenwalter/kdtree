@@ -125,7 +125,7 @@ void print_kdtree_helper(std::ostream &os, RandomAccessIterator begin, RandomAcc
   }
 }
 
-template <std::size_t LeafThreshold, class Metric, class RandomAccessIterator, class Point,
+template <class Metric, std::size_t LeafThreshold, class RandomAccessIterator, class Point,
           class DistanceType>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
                             Point const &point, dimension_type dim, DistanceType &mindist,
@@ -149,27 +149,27 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
   // in the splitting dimension is Metric::prune_distance(gap). If
   // that value > mindist, the median cannot be closer than the current best.
   if (point[dim] <= (*median)[dim]) {
-    nnsearch_kdtree_helper<LeafThreshold, Metric>(begin, median, point, next_dimension<d>(dim),
+    nnsearch_kdtree_helper<Metric, LeafThreshold>(begin, median, point, next_dimension<d>(dim),
                                                   mindist, closest);
     auto gap = (*median)[dim] - point[dim];
     if (Metric::prune_distance(gap) <= mindist) {
       update_minimum_distance<Metric>(median, point, mindist, closest);
-      nnsearch_kdtree_helper<LeafThreshold, Metric>(median + 1, end, point, next_dimension<d>(dim),
+      nnsearch_kdtree_helper<Metric, LeafThreshold>(median + 1, end, point, next_dimension<d>(dim),
                                                     mindist, closest);
     }
   } else {
-    nnsearch_kdtree_helper<LeafThreshold, Metric>(median + 1, end, point, next_dimension<d>(dim),
+    nnsearch_kdtree_helper<Metric, LeafThreshold>(median + 1, end, point, next_dimension<d>(dim),
                                                   mindist, closest);
     auto gap = point[dim] - (*median)[dim];
     if (Metric::prune_distance(gap) <= mindist) {
       update_minimum_distance<Metric>(median, point, mindist, closest);
-      nnsearch_kdtree_helper<LeafThreshold, Metric>(begin, median, point, next_dimension<d>(dim),
+      nnsearch_kdtree_helper<Metric, LeafThreshold>(begin, median, point, next_dimension<d>(dim),
                                                     mindist, closest);
     }
   }
 }
 
-template <std::size_t LeafThreshold, class Metric, class RandomAccessIterator, class Point,
+template <class Metric, std::size_t LeafThreshold, class RandomAccessIterator, class Point,
           class Heap, class Compare>
 void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end,
                             Point const &point, std::size_t k, dimension_type dim, Heap &heap,
@@ -191,21 +191,21 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
   // median evaluation. The heap.size() < k guard ensures we always
   // explore both subtrees until k candidates have been collected.
   if (point[dim] <= (*median)[dim]) {
-    nnsearch_kdtree_helper<LeafThreshold, Metric>(begin, median, point, k, next_dimension<d>(dim),
+    nnsearch_kdtree_helper<Metric, LeafThreshold>(begin, median, point, k, next_dimension<d>(dim),
                                                   heap, comp);
     auto gap = (*median)[dim] - point[dim];
     if (heap.size() < k || Metric::prune_distance(gap) <= heap.front().first) {
       update_heap<Metric>(median, point, heap, k, comp);
-      nnsearch_kdtree_helper<LeafThreshold, Metric>(median + 1, end, point, k,
+      nnsearch_kdtree_helper<Metric, LeafThreshold>(median + 1, end, point, k,
                                                     next_dimension<d>(dim), heap, comp);
     }
   } else {
-    nnsearch_kdtree_helper<LeafThreshold, Metric>(median + 1, end, point, k, next_dimension<d>(dim),
+    nnsearch_kdtree_helper<Metric, LeafThreshold>(median + 1, end, point, k, next_dimension<d>(dim),
                                                   heap, comp);
     auto gap = point[dim] - (*median)[dim];
     if (heap.size() < k || Metric::prune_distance(gap) <= heap.front().first) {
       update_heap<Metric>(median, point, heap, k, comp);
-      nnsearch_kdtree_helper<LeafThreshold, Metric>(begin, median, point, k, next_dimension<d>(dim),
+      nnsearch_kdtree_helper<Metric, LeafThreshold>(begin, median, point, k, next_dimension<d>(dim),
                                                     heap, comp);
     }
   }
@@ -342,8 +342,8 @@ void print_kdtree(std::ostream &os, RandomAccessIterator begin, RandomAccessIter
  * @param point The query point.
  * @return Iterator to the nearest neighbor, or @p end if the range is empty.
  */
-template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point,
-          typename Metric = squared_euclidean_metric>
+template <typename Metric = squared_euclidean_metric, std::size_t LeafThreshold = 0,
+          class RandomAccessIterator, class Point>
 RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIterator end,
                                      Point const &point) {
   using iterator_tag = typename std::iterator_traits<RandomAccessIterator>::iterator_category;
@@ -361,7 +361,7 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
   using coordinate_type = typename Point::coordinate_type;
   coordinate_type distance = std::numeric_limits<coordinate_type>::max();
   RandomAccessIterator location = end;
-  detail::nnsearch_kdtree_helper<threshold, Metric>(begin, end, point, 0, distance, location);
+  detail::nnsearch_kdtree_helper<Metric, threshold>(begin, end, point, 0, distance, location);
   return location;
 }
 
@@ -377,8 +377,8 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
  * @return Vector of iterators to the k nearest neighbors (unordered). If the
  *         tree contains fewer than k points, all points are returned.
  */
-template <std::size_t LeafThreshold = 0, class RandomAccessIterator, class Point,
-          typename Metric = squared_euclidean_metric>
+template <typename Metric = squared_euclidean_metric, std::size_t LeafThreshold = 0,
+          class RandomAccessIterator, class Point>
 std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
                                                   RandomAccessIterator end, Point const &point,
                                                   std::size_t k) {
@@ -397,7 +397,7 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
   // the worst candidate when a closer point is found.
   std::vector<heap_entry> heap;
   heap.reserve(k);
-  detail::nnsearch_kdtree_helper<threshold, Metric>(begin, end, point, k, 0, heap,
+  detail::nnsearch_kdtree_helper<Metric, threshold>(begin, end, point, k, 0, heap,
                                                     detail::compare_by_distance{});
   // Extract iterators directly from the heap vector — O(k) instead of
   // O(k log k) priority queue drain.
@@ -427,7 +427,8 @@ RandomAccessIterator search_kdtree(RandomAccessIterator begin, RandomAccessItera
                 "kdtree::search_kdtree only accepts random access iterators or raw pointers.\n");
   static_assert(std::is_convertible<Point, value_type>::value,
                 "kdtree::search_kdtree requires Point convertible to the iterator's value_type.\n");
-  RandomAccessIterator it = nnsearch_kdtree<LeafThreshold>(begin, end, point);
+  RandomAccessIterator it =
+      nnsearch_kdtree<squared_euclidean_metric, LeafThreshold>(begin, end, point);
   if (it == end) {
     return end;
   }
