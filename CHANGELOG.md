@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 No changes yet.
 
-## [2.0.0] - 2026-03-15
+## [2.0.0] - 2026-03-18
 
 ### Added
 - CMake install support with `find_package(kdtree)` for downstream consumers
