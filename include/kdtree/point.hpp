@@ -9,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 namespace kdtree {
@@ -127,6 +128,20 @@ auto squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2)
   return dist;
 }
 
+namespace detail {
+
+/** @brief Absolute difference safe for both signed and unsigned types. */
+template <class T> typename std::enable_if<std::is_signed<T>::value, T>::type abs_diff(T a, T b) {
+  T diff = a - b;
+  return diff < 0 ? -diff : diff;
+}
+
+template <class T> typename std::enable_if<std::is_unsigned<T>::value, T>::type abs_diff(T a, T b) {
+  return a >= b ? a - b : b - a;
+}
+
+} // namespace detail
+
 /**
  * @brief Compute the Chebyshev (max-norm / L-infinity) distance between two same-type points.
  *
@@ -139,12 +154,9 @@ template <class T, std::size_t d>
 T chebyshev_distance(point<T, d> const &p1, point<T, d> const &p2) {
   T dist = 0;
   for (std::size_t i = 0; i < d; ++i) {
-    T diff = p1[i] - p2[i];
-    if (diff < 0) {
-      diff = -diff;
-    }
-    if (diff > dist) {
-      dist = diff;
+    T ad = detail::abs_diff(p1[i], p2[i]);
+    if (ad > dist) {
+      dist = ad;
     }
   }
   return dist;
@@ -158,12 +170,10 @@ auto chebyshev_distance(point<T, d> const &p1, point<U, d> const &p2) -> decltyp
   using result_type = decltype(T{} - U{});
   result_type dist = 0;
   for (std::size_t i = 0; i < d; ++i) {
-    result_type diff = p1[i] - p2[i];
-    if (diff < 0) {
-      diff = -diff;
-    }
-    if (diff > dist) {
-      dist = diff;
+    result_type ad =
+        detail::abs_diff(static_cast<result_type>(p1[i]), static_cast<result_type>(p2[i]));
+    if (ad > dist) {
+      dist = ad;
     }
   }
   return dist;
@@ -206,7 +216,7 @@ struct chebyshev_metric {
 
   /** @brief Compute pruning distance from a single-dimension gap.
    *  For Chebyshev, this is |gap| (exact lower bound on full distance). */
-  template <class T> static T prune_distance(T gap) { return gap < 0 ? -gap : gap; }
+  template <class T> static T prune_distance(T gap) { return detail::abs_diff(gap, T{0}); }
 };
 
 /**

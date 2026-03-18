@@ -244,6 +244,55 @@ TEST_CASE("squared_euclidean_distance with negative coordinates", "[point][dista
   REQUIRE(kdtree::squared_euclidean_distance(a, b) == 25);
 }
 
+// --- Chebyshev distance ---
+
+TEST_CASE("chebyshev_distance with int points", "[point][distance]") {
+  kdtree::point<int, 2> a(0, 0);
+  kdtree::point<int, 2> b(3, 4);
+  REQUIRE(kdtree::chebyshev_distance(a, b) == 4);
+}
+
+TEST_CASE("chebyshev_distance same point is zero", "[point][distance]") {
+  kdtree::point<int, 3> p(5, 10, 15);
+  REQUIRE(kdtree::chebyshev_distance(p, p) == 0);
+}
+
+TEST_CASE("chebyshev_distance is symmetric", "[point][distance]") {
+  kdtree::point<double, 2> a(1.5, 2.5);
+  kdtree::point<double, 2> b(-0.5, 3.5);
+  REQUIRE_THAT(kdtree::chebyshev_distance(a, b),
+               WithinAbs(kdtree::chebyshev_distance(b, a), 1e-10));
+}
+
+TEST_CASE("chebyshev_distance 3D", "[point][distance]") {
+  kdtree::point<double, 3> a(1.0, 2.0, 3.0);
+  kdtree::point<double, 3> b(4.0, 6.0, 3.0);
+  // max(|3|, |4|, |0|) = 4
+  REQUIRE_THAT(kdtree::chebyshev_distance(a, b), WithinAbs(4.0, 1e-10));
+}
+
+TEST_CASE("chebyshev_distance with negative coordinates", "[point][distance]") {
+  kdtree::point<int, 2> a(-3, -4);
+  kdtree::point<int, 2> b(0, 0);
+  // max(|3|, |4|) = 4
+  REQUIRE(kdtree::chebyshev_distance(a, b) == 4);
+}
+
+TEST_CASE("chebyshev_distance with unsigned int points", "[point][distance]") {
+  kdtree::point<unsigned int, 2> a(1u, 5u);
+  kdtree::point<unsigned int, 2> b(4u, 2u);
+  // max(|4-1|, |2-5|) = max(3, 3) = 3
+  REQUIRE(kdtree::chebyshev_distance(a, b) == 3u);
+  REQUIRE(kdtree::chebyshev_distance(b, a) == 3u);
+}
+
+TEST_CASE("chebyshev_distance with unsigned int where b > a", "[point][distance]") {
+  kdtree::point<unsigned int, 2> a(0u, 0u);
+  kdtree::point<unsigned int, 2> b(10u, 7u);
+  REQUIRE(kdtree::chebyshev_distance(a, b) == 10u);
+  REQUIRE(kdtree::chebyshev_distance(b, a) == 10u);
+}
+
 // --- Hash ---
 
 TEST_CASE("point hash: equal points hash equal", "[point][hash]") {

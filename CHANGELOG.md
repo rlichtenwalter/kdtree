@@ -15,9 +15,9 @@ No changes yet.
 - CMake install support with `find_package(kdtree)` for downstream consumers
 - pkg-config support for non-CMake consumers
 - CTest integration for test executables
-- Comprehensive Catch2 v3 unit test suite (98 tests) covering point, kdtree, convex_polygon, and point_in_polygon
+- Comprehensive Catch2 v3 unit test suite covering point, kdtree, convex_polygon, and point_in_polygon
 - Catch2 benchmark suite for construction and query operations across 2D-5D
-- CLI integration tests (21 tests) covering all options, input modes, and error cases
+- CLI integration tests covering all options, input modes, and error cases
 - clang-format configuration (LLVM base style) for consistent code formatting
 - clang-tidy configuration for static analysis
 - CI lint job for format checking and static analysis
@@ -25,15 +25,19 @@ No changes yet.
 - CLI version string sourced from VERSION file via CMake
 - Output-iterator overloads for `rangequery_kdtree` and `radiusquery_kdtree` to avoid per-call allocation
 - Bucket k-d tree with auto-tuned leaf threshold based on point size and cache line width
+- Pluggable distance metric support for kd-tree search via `Metric` template parameter with `squared_euclidean_metric` (default) and `chebyshev_metric` policies
 - `LeafThreshold` template parameter on all public API functions (default auto-selects)
+- Chebyshev (L-infinity) distance function for max-norm nearest neighbor queries
+- `detail::abs_diff` SFINAE helper for unsigned-safe absolute difference computation
 - Mixed-type `squared_euclidean_distance` overload for points with different coordinate types
 - Javadoc-style docstrings on all public API functions and classes
 
 ### Changed
 - **BREAKING**: Move headers to `include/kdtree/` subdirectory (use `#include <kdtree/kdtree.hpp>`)
-- **BREAKING**: Derive distance type from point coordinate type instead of hardcoding `float`
+- **BREAKING**: Derive distance type from the metric policy rather than hardcoding `float`
 - **BREAKING**: `radiusquery_kdtree` radius parameter type changed from `double` to `Point::coordinate_type`
-- **BREAKING**: New `LeafThreshold` template parameter added as first parameter on all public functions
+- **BREAKING**: `nnsearch_kdtree` template parameters: `Metric` (type, default `squared_euclidean_metric`) is first, `LeafThreshold` (NTTP, default auto) is second
+- kNN overload returns early for empty ranges or k=0
 - Pin clang-format via pre-commit (`mirrors-clang-format` v20.1.8) and clang-tidy via pip (`clang-tidy` 20.1.0) for version consistency between development and CI
 - Replace Makefile with CMake build system
 - Minimum C++ standard is C++14 (unchanged, now declared via CMake)
@@ -72,6 +76,7 @@ No changes yet.
 - CLI `log_message` timer stack could become unbalanced across verbosity levels
 - CLI help text typo "exist" instead of "exit"
 - CLI `-t` delimiter option was parsed but never used (removed)
+- `radiusquery_kdtree` subtree selection used signed gap comparison that silently wrapped for unsigned coordinate types
 - Suppress clang-tidy checks incompatible with C++14 and LLVM 20
 
 ## [1.0.0] - 2020-12-07

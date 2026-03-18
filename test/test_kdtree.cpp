@@ -13,13 +13,13 @@ using Catch::Matchers::WithinAbs;
 
 // --- Helper: brute-force nearest neighbor for verification ---
 
-template <typename PointType>
-typename std::vector<PointType>::const_iterator brute_force_nn(const std::vector<PointType> &data,
-                                                               const PointType &query) {
+template <typename DistanceFn, typename PointType>
+typename std::vector<PointType>::const_iterator
+brute_force_nn(DistanceFn dist_fn, const std::vector<PointType> &data, const PointType &query) {
   auto best = data.cbegin();
-  auto best_dist = kdtree::squared_euclidean_distance(query, *best);
+  auto best_dist = dist_fn(query, *best);
   for (auto it = data.cbegin() + 1; it != data.cend(); ++it) {
-    auto dist = kdtree::squared_euclidean_distance(query, *it);
+    auto dist = dist_fn(query, *it);
     if (dist < best_dist) {
       best_dist = dist;
       best = it;
@@ -30,13 +30,12 @@ typename std::vector<PointType>::const_iterator brute_force_nn(const std::vector
 
 // --- Helper: brute-force kNN for verification ---
 
-template <typename PointType>
-std::vector<PointType> brute_force_knn(const std::vector<PointType> &data, const PointType &query,
-                                       std::size_t k) {
-  std::vector<std::pair<decltype(kdtree::squared_euclidean_distance(query, data[0])), std::size_t>>
-      dists;
+template <typename DistanceFn, typename PointType>
+std::vector<PointType> brute_force_knn(DistanceFn dist_fn, const std::vector<PointType> &data,
+                                       const PointType &query, std::size_t k) {
+  std::vector<std::pair<decltype(dist_fn(query, data[0])), std::size_t>> dists;
   for (std::size_t i = 0; i < data.size(); ++i) {
-    dists.emplace_back(kdtree::squared_euclidean_distance(query, data[i]), i);
+    dists.emplace_back(dist_fn(query, data[i]), i);
   }
   std::sort(dists.begin(), dists.end());
   std::vector<PointType> result;
@@ -46,6 +45,19 @@ std::vector<PointType> brute_force_knn(const std::vector<PointType> &data, const
   std::sort(result.begin(), result.end());
   return result;
 }
+
+// Distance function objects for brute-force helpers
+struct euclidean_dist {
+  template <typename P> auto operator()(P const &a, P const &b) const {
+    return kdtree::squared_euclidean_distance(a, b);
+  }
+};
+
+struct chebyshev_dist {
+  template <typename P> auto operator()(P const &a, P const &b) const {
+    return kdtree::chebyshev_distance(a, b);
+  }
+};
 
 // ============================================================
 // make_kdtree
@@ -160,7 +172,7 @@ TEST_CASE("nnsearch_kdtree basic 2D int", "[kdtree][nn]") {
 
   kdtree::point<int, 2> query(-1, -1);
   auto it = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), query);
-  auto brute_it = brute_force_nn(data, query);
+  auto brute_it = brute_force_nn(euclidean_dist{}, data, query);
 
   REQUIRE(kdtree::squared_euclidean_distance(query, *it) ==
           kdtree::squared_euclidean_distance(query, *brute_it));
@@ -175,7 +187,7 @@ TEST_CASE("nnsearch_kdtree matches brute force for multiple queries", "[kdtree][
 
   for (const auto &q : queries) {
     auto it = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), q);
-    auto brute_it = brute_force_nn(data, q);
+    auto brute_it = brute_force_nn(euclidean_dist{}, data, q);
     REQUIRE(kdtree::squared_euclidean_distance(q, *it) ==
             kdtree::squared_euclidean_distance(q, *brute_it));
   }
@@ -212,7 +224,7 @@ TEST_CASE("nnsearch_kdtree with float points - pruning correctness", "[kdtree][n
 
   kdtree::point<double, 2> query(0.1, 0.0);
   auto it = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), query);
-  auto brute_it = brute_force_nn(data, query);
+  auto brute_it = brute_force_nn(euclidean_dist{}, data, query);
 
   auto kdtree_dist = kdtree::squared_euclidean_distance(query, *it);
   auto brute_dist = kdtree::squared_euclidean_distance(query, *brute_it);
@@ -236,7 +248,7 @@ TEST_CASE("nnsearch_kdtree with float points - larger dataset", "[kdtree][nn][pr
 
   for (const auto &q : queries) {
     auto it = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), q);
-    auto brute_it = brute_force_nn(data, q);
+    auto brute_it = brute_force_nn(euclidean_dist{}, data, q);
 
     auto kdtree_dist = kdtree::squared_euclidean_distance(q, *it);
     auto brute_dist = kdtree::squared_euclidean_distance(q, *brute_it);
@@ -275,6 +287,14 @@ TEST_CASE("nnsearch_kdtree kNN returns valid iterators", "[kdtree][knn]") {
   }
 }
 
+TEST_CASE("nnsearch_kdtree kNN k=0 returns empty", "[kdtree][knn]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 1}, {2, 2}};
+  kdtree::make_kdtree(data.begin(), data.end());
+  kdtree::point<int, 2> query(0, 0);
+  auto results = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), query, 0);
+  REQUIRE(results.empty());
+}
+
 TEST_CASE("nnsearch_kdtree kNN k=1 matches 1-NN", "[kdtree][knn]") {
   std::vector<kdtree::point<int, 2>> data = {{1, 3}, {2, 7}, {-3, 6}, {-2, -1}, {-7, 4}, {0, 0}};
   kdtree::make_kdtree(data.begin(), data.end());
@@ -297,7 +317,7 @@ TEST_CASE("nnsearch_kdtree kNN matches brute force", "[kdtree][knn]") {
   kdtree::point<int, 2> query(-1, -1);
   std::size_t k = 4;
   auto results = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), query, k);
-  auto expected = brute_force_knn(data, query, k);
+  auto expected = brute_force_knn(euclidean_dist{}, data, query, k);
 
   // Collect kdtree results as sorted points
   std::vector<kdtree::point<int, 2>> result_points;
@@ -534,4 +554,152 @@ TEST_CASE("kdtree with two elements", "[kdtree][edge]") {
   kdtree::point<int, 2> query(1, 1);
   auto it = kdtree::nnsearch_kdtree(data.cbegin(), data.cend(), query);
   REQUIRE(*it == kdtree::point<int, 2>(0, 0));
+}
+
+// ============================================================
+// nnsearch_kdtree with chebyshev_metric (1-NN)
+// ============================================================
+
+TEST_CASE("nnsearch_kdtree chebyshev 1-NN matches brute force", "[kdtree][nn][chebyshev]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 3},  {2, 7},  {-3, 6}, {-2, -1}, {-7, 4}, {2, 3},
+                                             {-5, 2}, {-1, 9}, {6, -3}, {-4, 0},  {0, -1}, {3, 3}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  std::vector<kdtree::point<int, 2>> queries = {{0, 0}, {5, 5}, {-10, -10}, {3, 7}, {-3, -3}};
+
+  for (const auto &q : queries) {
+    auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), q);
+    auto brute_it = brute_force_nn(chebyshev_dist{}, data, q);
+    REQUIRE(kdtree::chebyshev_distance(q, *it) == kdtree::chebyshev_distance(q, *brute_it));
+  }
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev 1-NN with double points", "[kdtree][nn][chebyshev]") {
+  std::vector<kdtree::point<double, 2>> data = {
+      {0.1, 0.2}, {0.5, 0.8}, {0.3, 0.1},   {0.9, 0.4},   {0.7, 0.6},   {0.2, 0.9},  {0.4, 0.3},
+      {0.6, 0.7}, {0.8, 0.5}, {0.15, 0.85}, {0.35, 0.55}, {0.65, 0.15}, {0.95, 0.95}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  std::vector<kdtree::point<double, 2>> queries = {
+      {0.25, 0.25}, {0.75, 0.75}, {0.0, 0.0}, {1.0, 1.0}, {0.45, 0.45}, {0.11, 0.81}, {0.33, 0.07}};
+
+  for (const auto &q : queries) {
+    auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), q);
+    auto brute_it = brute_force_nn(chebyshev_dist{}, data, q);
+
+    auto kdtree_dist = kdtree::chebyshev_distance(q, *it);
+    auto brute_dist = kdtree::chebyshev_distance(q, *brute_it);
+
+    INFO("query: (" << q[0] << ", " << q[1] << ")");
+    INFO("kdtree: (" << (*it)[0] << ", " << (*it)[1] << ") dist=" << kdtree_dist);
+    INFO("brute:  (" << (*brute_it)[0] << ", " << (*brute_it)[1] << ") dist=" << brute_dist);
+    REQUIRE_THAT(kdtree_dist, WithinAbs(brute_dist, 1e-10));
+  }
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev pruning stress test", "[kdtree][nn][chebyshev][pruning]") {
+  // Point near splitting plane in one dimension but far in another.
+  // Forces the Chebyshev pruning path to be exercised: the gap in the
+  // splitting dimension is small, but the true NN may be across the plane.
+  std::vector<kdtree::point<double, 2>> data = {{0.0, 10.0}, {0.5, 0.0}, {1.0, 0.1}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  // Query near the splitting plane — Chebyshev NN differs from Euclidean NN
+  kdtree::point<double, 2> query(0.4, 0.0);
+  auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query);
+  auto brute_it = brute_force_nn(chebyshev_dist{}, data, query);
+
+  auto kdtree_dist = kdtree::chebyshev_distance(query, *it);
+  auto brute_dist = kdtree::chebyshev_distance(query, *brute_it);
+
+  INFO("kdtree: (" << (*it)[0] << ", " << (*it)[1] << ") dist=" << kdtree_dist);
+  INFO("brute:  (" << (*brute_it)[0] << ", " << (*brute_it)[1] << ") dist=" << brute_dist);
+  REQUIRE_THAT(kdtree_dist, WithinAbs(brute_dist, 1e-10));
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev 3D", "[kdtree][nn][chebyshev]") {
+  std::vector<kdtree::point<int, 3>> data = {{1, 3, 1},   {2, 7, 1}, {-3, 6, 1},
+                                             {-2, -1, 1}, {0, 0, 0}, {4, 2, -3}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 3> query(0, 0, 0);
+  auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query);
+  auto brute_it = brute_force_nn(chebyshev_dist{}, data, query);
+  REQUIRE(kdtree::chebyshev_distance(query, *it) == kdtree::chebyshev_distance(query, *brute_it));
+}
+
+// ============================================================
+// nnsearch_kdtree with chebyshev_metric (kNN)
+// ============================================================
+
+TEST_CASE("nnsearch_kdtree chebyshev kNN matches brute force", "[kdtree][knn][chebyshev]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 3},  {2, 7},  {-3, 6}, {-2, -1}, {-7, 4}, {2, 3},
+                                             {-5, 2}, {-1, 9}, {6, -3}, {-4, 0},  {0, -1}, {3, 3}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> query(-1, -1);
+  std::size_t k = 4;
+  auto results =
+      kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query, k);
+  REQUIRE(results.size() == k);
+
+  // Compare sorted distance multisets to handle ties correctly
+  std::vector<int> kdtree_dists;
+  for (const auto &it : results) {
+    kdtree_dists.push_back(kdtree::chebyshev_distance(query, *it));
+  }
+  std::sort(kdtree_dists.begin(), kdtree_dists.end());
+
+  // Brute force: compute all distances, sort, take first k
+  std::vector<int> all_dists;
+  for (const auto &p : data) {
+    all_dists.push_back(kdtree::chebyshev_distance(query, p));
+  }
+  std::sort(all_dists.begin(), all_dists.end());
+  std::vector<int> expected_dists(all_dists.begin(), all_dists.begin() + static_cast<long>(k));
+
+  REQUIRE(kdtree_dists == expected_dists);
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev kNN with double points", "[kdtree][knn][chebyshev]") {
+  std::vector<kdtree::point<double, 2>> data = {
+      {0.1, 0.2}, {0.5, 0.8}, {0.3, 0.1},   {0.9, 0.4},   {0.7, 0.6},   {0.2, 0.9},  {0.4, 0.3},
+      {0.6, 0.7}, {0.8, 0.5}, {0.15, 0.85}, {0.35, 0.55}, {0.65, 0.15}, {0.95, 0.95}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  std::vector<kdtree::point<double, 2>> queries = {{0.25, 0.25}, {0.75, 0.75}, {0.5, 0.5}};
+
+  for (const auto &q : queries) {
+    std::size_t k = 3;
+    auto results =
+        kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), q, k);
+    auto expected = brute_force_knn(chebyshev_dist{}, data, q, k);
+
+    std::vector<kdtree::point<double, 2>> result_points;
+    for (const auto &it : results) {
+      result_points.push_back(*it);
+    }
+    std::sort(result_points.begin(), result_points.end());
+
+    REQUIRE(result_points.size() == expected.size());
+    for (std::size_t i = 0; i < result_points.size(); ++i) {
+      for (std::size_t dim = 0; dim < 2; ++dim) {
+        REQUIRE_THAT(result_points[i][dim], WithinAbs(expected[i][dim], 1e-10));
+      }
+    }
+  }
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev kNN k=1 matches 1-NN", "[kdtree][knn][chebyshev]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 3}, {2, 7}, {-3, 6}, {-2, -1}, {-7, 4}, {0, 0}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> query(1, 1);
+  auto nn_it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query);
+  auto knn_results =
+      kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query, 1);
+
+  REQUIRE(knn_results.size() == 1);
+  REQUIRE(kdtree::chebyshev_distance(query, *nn_it) ==
+          kdtree::chebyshev_distance(query, *knn_results[0]));
 }

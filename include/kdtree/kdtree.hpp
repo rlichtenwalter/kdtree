@@ -270,11 +270,10 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
     *out++ = median;
   }
 
-  auto gap = center[dim] - (*median)[dim];
-
-  if (gap <= 0) {
+  if (center[dim] <= (*median)[dim]) {
     radiusquery_kdtree_helper<LeafThreshold>(begin, median, center, squared_radius,
                                              next_dimension<d>(dim), out);
+    auto gap = (*median)[dim] - center[dim];
     if (gap * gap <= squared_radius) {
       radiusquery_kdtree_helper<LeafThreshold>(median + 1, end, center, squared_radius,
                                                next_dimension<d>(dim), out);
@@ -282,6 +281,7 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
   } else {
     radiusquery_kdtree_helper<LeafThreshold>(median + 1, end, center, squared_radius,
                                              next_dimension<d>(dim), out);
+    auto gap = center[dim] - (*median)[dim];
     if (gap * gap <= squared_radius) {
       radiusquery_kdtree_helper<LeafThreshold>(begin, median, center, squared_radius,
                                                next_dimension<d>(dim), out);
@@ -358,8 +358,8 @@ RandomAccessIterator nnsearch_kdtree(RandomAccessIterator begin, RandomAccessIte
   }
   constexpr std::size_t threshold =
       (LeafThreshold == 0) ? detail::default_leaf_threshold<value_type>() : LeafThreshold;
-  using coordinate_type = typename Point::coordinate_type;
-  coordinate_type distance = std::numeric_limits<coordinate_type>::max();
+  using distance_type = decltype(Metric::distance(*begin, point));
+  distance_type distance = std::numeric_limits<distance_type>::max();
   RandomAccessIterator location = end;
   detail::nnsearch_kdtree_helper<Metric, threshold>(begin, end, point, 0, distance, location);
   return location;
@@ -389,10 +389,13 @@ std::vector<RandomAccessIterator> nnsearch_kdtree(RandomAccessIterator begin,
   static_assert(
       std::is_convertible<Point, value_type>::value,
       "kdtree::nnsearch_kdtree requires Point convertible to the iterator's value_type.\n");
+  if (begin == end || k == 0) {
+    return {};
+  }
   constexpr std::size_t threshold =
       (LeafThreshold == 0) ? detail::default_leaf_threshold<value_type>() : LeafThreshold;
-  using coordinate_type = typename Point::coordinate_type;
-  using heap_entry = std::pair<coordinate_type, RandomAccessIterator>;
+  using distance_type = decltype(Metric::distance(*begin, point));
+  using heap_entry = std::pair<distance_type, RandomAccessIterator>;
   // Max-heap: largest distance at front, so we can efficiently replace
   // the worst candidate when a closer point is found.
   std::vector<heap_entry> heap;
