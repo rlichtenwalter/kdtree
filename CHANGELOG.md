@@ -30,6 +30,7 @@ No changes yet.
 - Chebyshev (L-infinity) distance function for max-norm nearest neighbor queries
 - `detail::abs_diff` SFINAE helper for unsigned-safe absolute difference computation
 - Mixed-type `squared_euclidean_distance` overload for points with different coordinate types
+- CLI nearest-neighbor query support (`--query`, `--k`, `--metric`, `--print-tree`)
 - Javadoc-style docstrings on all public API functions and classes
 
 ### Changed
