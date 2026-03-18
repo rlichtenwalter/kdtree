@@ -128,6 +128,88 @@ auto squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2)
 }
 
 /**
+ * @brief Compute the Chebyshev (max-norm / L-infinity) distance between two same-type points.
+ *
+ * The Chebyshev distance is the maximum absolute coordinate difference:
+ * d(p1, p2) = max_i |p1[i] - p2[i]|. Used in KSG mutual information estimation.
+ *
+ * @return Maximum absolute coordinate difference, as type T.
+ */
+template <class T, std::size_t d>
+T chebyshev_distance(point<T, d> const &p1, point<T, d> const &p2) {
+  T dist = 0;
+  for (std::size_t i = 0; i < d; ++i) {
+    T diff = p1[i] - p2[i];
+    if (diff < 0) {
+      diff = -diff;
+    }
+    if (diff > dist) {
+      dist = diff;
+    }
+  }
+  return dist;
+}
+
+/**
+ * @brief Compute the Chebyshev distance between two mixed-type points.
+ */
+template <class T, class U, std::size_t d>
+auto chebyshev_distance(point<T, d> const &p1, point<U, d> const &p2) -> decltype(T{} - U{}) {
+  using result_type = decltype(T{} - U{});
+  result_type dist = 0;
+  for (std::size_t i = 0; i < d; ++i) {
+    result_type diff = p1[i] - p2[i];
+    if (diff < 0) {
+      diff = -diff;
+    }
+    if (diff > dist) {
+      dist = diff;
+    }
+  }
+  return dist;
+}
+
+// --- Distance metric policies for kd-tree search ---
+// These allow the search algorithms to be parameterized on the distance metric
+// at compile time, with zero runtime overhead (all methods are inlined).
+
+/**
+ * @brief Squared Euclidean distance metric policy (default).
+ *
+ * Computes squared Euclidean distance for full points and uses squared
+ * single-dimension gap for kd-tree pruning. This is the standard metric
+ * for nearest neighbor search.
+ */
+struct squared_euclidean_metric {
+  /** @brief Compute distance between two points. */
+  template <class P> static auto distance(P const &a, P const &b) -> decltype(a[0] - b[0]) {
+    return squared_euclidean_distance(a, b);
+  }
+
+  /** @brief Compute the pruning distance from a single-dimension gap.
+   *  For squared Euclidean, this is gap^2 (lower bound on full distance). */
+  template <class T> static T prune_distance(T gap) { return gap * gap; }
+};
+
+/**
+ * @brief Chebyshev (max-norm / L-infinity) distance metric policy.
+ *
+ * Computes Chebyshev distance for full points and uses absolute
+ * single-dimension gap for pruning. Required by the KSG mutual
+ * information estimator (Kraskov et al., 2004).
+ */
+struct chebyshev_metric {
+  /** @brief Compute distance between two points. */
+  template <class P> static auto distance(P const &a, P const &b) -> decltype(a[0] - b[0]) {
+    return chebyshev_distance(a, b);
+  }
+
+  /** @brief Compute pruning distance from a single-dimension gap.
+   *  For Chebyshev, this is |gap| (exact lower bound on full distance). */
+  template <class T> static T prune_distance(T gap) { return gap < 0 ? -gap : gap; }
+};
+
+/**
  * @brief Write a point in parenthesized format: (x1,x2,...,xd).
  */
 template <typename T, std::size_t d>
