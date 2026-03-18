@@ -110,3 +110,101 @@ add_test(NAME cli_no_trailing_newline
     COMMAND sh -c "printf '(1,2)' | ${CLI}")
 set_tests_properties(cli_no_trailing_newline PROPERTIES
     PASS_REGULAR_EXPRESSION "\\(1,2\\)")
+
+# --- Query tests ---
+
+# 1-NN query: nearest to (0,0) among (1,3),(2,7),(-3,6) is (1,3)
+add_test(NAME cli_query_1nn
+    COMMAND ${CLI} --query "(0,0)" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_1nn PROPERTIES
+    PASS_REGULAR_EXPRESSION "^\\(1,3\\) ")
+
+# 1-NN query with -q short form
+add_test(NAME cli_query_short_flag
+    COMMAND ${CLI} -q "(0,0)" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_short_flag PROPERTIES
+    PASS_REGULAR_EXPRESSION "^\\(1,3\\) ")
+
+# kNN query: k=2 nearest to (0,0)
+add_test(NAME cli_query_knn
+    COMMAND ${CLI} --query "(0,0)" --k 2 ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_knn PROPERTIES
+    PASS_REGULAR_EXPRESSION "\\(1,3\\).*\\(-3,6\\)")
+
+# Query suppresses tree output by default
+add_test(NAME cli_query_no_tree
+    COMMAND sh -c "${CLI} --query '(0,0)' ${TEST_DATA}/three_points.txt | grep -c '\\[d='")
+set_tests_properties(cli_query_no_tree PROPERTIES
+    WILL_FAIL TRUE)
+
+# --print-tree restores tree output alongside query
+add_test(NAME cli_query_print_tree
+    COMMAND ${CLI} --query "(0,0)" --print-tree ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_print_tree PROPERTIES
+    PASS_REGULAR_EXPRESSION "\\[d=0,n=3\\]")
+
+# Multiple queries produce blank-line-separated blocks
+add_test(NAME cli_query_multiple
+    COMMAND sh -c "${CLI} --query '(0,0)' --query '(2,7)' ${TEST_DATA}/three_points.txt | grep -c '^$'")
+set_tests_properties(cli_query_multiple PROPERTIES
+    PASS_REGULAR_EXPRESSION "^1")
+
+# Chebyshev metric
+add_test(NAME cli_query_chebyshev
+    COMMAND ${CLI} --query "(0,0)" --metric chebyshev ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_chebyshev PROPERTIES
+    PASS_REGULAR_EXPRESSION "^\\(1,3\\) 3")
+
+# Stdin with query
+add_test(NAME cli_query_stdin
+    COMMAND sh -c "printf '(1,3)\\n(2,7)\\n(-3,6)\\n' | ${CLI} --query '(0,0)'")
+set_tests_properties(cli_query_stdin PROPERTIES
+    PASS_REGULAR_EXPRESSION "^\\(1,3\\) ")
+
+# Error: --query with no input
+add_test(NAME cli_query_no_input
+    COMMAND sh -c "echo -n '' | ${CLI} --query '(0,0)'")
+set_tests_properties(cli_query_no_input PROPERTIES
+    WILL_FAIL TRUE)
+
+# Error: --k 0
+add_test(NAME cli_query_k_zero
+    COMMAND ${CLI} --k 0 --query "(0,0)" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_k_zero PROPERTIES
+    WILL_FAIL TRUE)
+
+# Error: --k negative
+add_test(NAME cli_query_k_negative
+    COMMAND ${CLI} --k -1 --query "(0,0)" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_k_negative PROPERTIES
+    WILL_FAIL TRUE)
+
+# Error: invalid metric name
+add_test(NAME cli_query_bad_metric
+    COMMAND ${CLI} --metric manhattan --query "(0,0)" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_bad_metric PROPERTIES
+    WILL_FAIL TRUE)
+
+# Error: malformed query point (missing parens)
+add_test(NAME cli_query_bad_format
+    COMMAND ${CLI} --query "1,2" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_bad_format PROPERTIES
+    WILL_FAIL TRUE)
+
+# Error: query point with trailing garbage
+add_test(NAME cli_query_trailing_garbage
+    COMMAND ${CLI} --query "(1,2)xyz" ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_trailing_garbage PROPERTIES
+    WILL_FAIL TRUE)
+
+# Warning: --metric without --query (tool succeeds but warns)
+add_test(NAME cli_metric_without_query
+    COMMAND ${CLI} --metric chebyshev ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_metric_without_query PROPERTIES
+    PASS_REGULAR_EXPRESSION "\\[d=0,n=3\\]")
+
+# k > n returns all points (no crash)
+add_test(NAME cli_query_k_exceeds_n
+    COMMAND ${CLI} --query "(0,0)" --k 100 ${TEST_DATA}/three_points.txt)
+set_tests_properties(cli_query_k_exceeds_n PROPERTIES
+    PASS_REGULAR_EXPRESSION "\\(1,3\\)")

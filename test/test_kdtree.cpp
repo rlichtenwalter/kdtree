@@ -703,3 +703,90 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN k=1 matches 1-NN", "[kdtree][knn][cheby
   REQUIRE(kdtree::chebyshev_distance(query, *nn_it) ==
           kdtree::chebyshev_distance(query, *knn_results[0]));
 }
+
+// ============================================================
+// Chebyshev edge cases
+// ============================================================
+
+TEST_CASE("nnsearch_kdtree chebyshev kNN k >= n returns all points", "[kdtree][knn][chebyshev]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 1}, {2, 2}, {3, 3}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> query(0, 0);
+  auto results =
+      kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query, 10);
+  REQUIRE(results.size() <= data.size());
+  REQUIRE(results.size() == 3);
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev 1-NN empty range", "[kdtree][nn][chebyshev][edge]") {
+  std::vector<kdtree::point<int, 2>> data;
+  kdtree::point<int, 2> query(0, 0);
+  auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query);
+  REQUIRE(it == data.cend());
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev kNN empty range", "[kdtree][knn][chebyshev][edge]") {
+  std::vector<kdtree::point<int, 2>> data;
+  kdtree::point<int, 2> query(0, 0);
+  auto results =
+      kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query, 3);
+  REQUIRE(results.empty());
+}
+
+TEST_CASE("nnsearch_kdtree chebyshev with duplicate points", "[kdtree][nn][chebyshev][edge]") {
+  std::vector<kdtree::point<int, 2>> data = {{1, 1}, {1, 1}, {1, 1}, {5, 5}, {10, 10}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<int, 2> query(1, 1);
+  auto it = kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query);
+  REQUIRE(kdtree::chebyshev_distance(query, *it) == 0);
+
+  auto results =
+      kdtree::nnsearch_kdtree<kdtree::chebyshev_metric>(data.cbegin(), data.cend(), query, 4);
+  REQUIRE(results.size() == 4);
+  // The 3 duplicates at distance 0, plus one more
+  int zero_count = 0;
+  for (auto const &r : results) {
+    if (kdtree::chebyshev_distance(query, *r) == 0) {
+      ++zero_count;
+    }
+  }
+  REQUIRE(zero_count == 3);
+}
+
+// ============================================================
+// radiusquery_kdtree with unsigned coordinate types (regression)
+// ============================================================
+
+TEST_CASE("radiusquery_kdtree with unsigned coordinates", "[kdtree][radius][unsigned]") {
+  std::vector<kdtree::point<unsigned int, 2>> data = {
+      {0u, 0u}, {1u, 0u}, {0u, 1u}, {3u, 3u}, {10u, 10u}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  kdtree::point<unsigned int, 2> center(0u, 0u);
+  unsigned int radius = 1;
+  auto results = kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius);
+
+  // Points within radius 1 of origin: (0,0) at d=0, (1,0) at d=1, (0,1) at d=1
+  REQUIRE(results.size() == 3);
+  for (const auto &it : results) {
+    auto dist = std::sqrt(static_cast<double>(kdtree::squared_euclidean_distance(center, *it)));
+    REQUIRE(dist <= static_cast<double>(radius));
+  }
+}
+
+TEST_CASE("radiusquery_kdtree with unsigned coordinates - center far from origin",
+          "[kdtree][radius][unsigned]") {
+  std::vector<kdtree::point<unsigned int, 2>> data = {
+      {0u, 0u}, {5u, 5u}, {10u, 10u}, {15u, 15u}, {20u, 20u}};
+  kdtree::make_kdtree(data.begin(), data.end());
+
+  // Query centered at (10,10) with radius 1 — only (10,10) should match
+  kdtree::point<unsigned int, 2> center(10u, 10u);
+  unsigned int radius = 1;
+  auto results = kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius);
+
+  REQUIRE(results.size() == 1);
+  REQUIRE(*results[0] == kdtree::point<unsigned int, 2>(10u, 10u));
+}
