@@ -44,4 +44,4 @@ jobs:
         run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Run clang-tidy
-        run: clang-tidy -p build include/kdtree/*.hpp tools/*.cpp test/*.cpp --warnings-as-errors='*'
+        run: clang-tidy -p build include/kdtree/*.hpp tools/*.cpp test/*.cpp

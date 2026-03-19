@@ -20,7 +20,7 @@ Checks: >
   -misc-const-correctness,
   -misc-use-anonymous-namespace,
 
-WarningsAsErrors: ''
+WarningsAsErrors: '*'
 
 HeaderFilterRegex: 'include/kdtree/.*\.hpp$'
 
