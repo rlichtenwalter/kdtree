@@ -122,8 +122,8 @@ TEST_CASE("convex_polygon reverse iterators traverse vertices in reverse", "[pol
 
   // Collect vertices via forward iteration
   std::vector<point> forward;
-  for (auto it = poly.begin(); it != poly.end(); ++it) {
-    forward.push_back(*it);
+  for (const auto &v : poly) {
+    forward.push_back(v);
   }
 
   // Reverse of forward should equal the reverse-iterated result

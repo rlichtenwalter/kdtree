@@ -34,6 +34,7 @@ template <typename DistanceFn, typename PointType>
 std::vector<PointType> brute_force_knn(DistanceFn dist_fn, const std::vector<PointType> &data,
                                        const PointType &query, std::size_t k) {
   std::vector<std::pair<decltype(dist_fn(query, data[0])), std::size_t>> dists;
+  dists.reserve(data.size());
   for (std::size_t i = 0; i < data.size(); ++i) {
     dists.emplace_back(dist_fn(query, data[i]), i);
   }
@@ -321,6 +322,7 @@ TEST_CASE("nnsearch_kdtree kNN matches brute force", "[kdtree][knn]") {
 
   // Collect kdtree results as sorted points
   std::vector<kdtree::point<int, 2>> result_points;
+  result_points.reserve(results.size());
   for (const auto &it : results) {
     result_points.push_back(*it);
   }
@@ -439,14 +441,14 @@ TEST_CASE("radiusquery_kdtree basic", "[kdtree][radius]") {
   kdtree::make_kdtree(data.begin(), data.end());
 
   kdtree::point<int, 2> center(0, 0);
-  double radius = 1.5;
+  int radius = 1;
   auto results = kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius);
 
-  // Points within radius 1.5 of origin: (0,0) at d=0, (1,0) at d=1, (0,1) at d=1
+  // Points within radius 1 of origin: (0,0) at d=0, (1,0) at d=1, (0,1) at d=1
   REQUIRE(results.size() == 3);
   for (const auto &it : results) {
     auto dist = std::sqrt(static_cast<double>(kdtree::squared_euclidean_distance(center, *it)));
-    REQUIRE(dist <= radius);
+    REQUIRE(dist <= static_cast<double>(radius));
   }
 }
 
@@ -493,7 +495,7 @@ TEST_CASE("radiusquery_kdtree output iterator overload", "[kdtree][radius]") {
   kdtree::make_kdtree(data.begin(), data.end());
 
   kdtree::point<int, 2> center(0, 0);
-  double radius = 1.5;
+  int radius = 1;
 
   std::vector<decltype(data.cbegin())> results;
   kdtree::radiusquery_kdtree(data.cbegin(), data.cend(), center, radius,
@@ -645,6 +647,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN matches brute force", "[kdtree][knn][ch
 
   // Compare sorted distance multisets to handle ties correctly
   std::vector<int> kdtree_dists;
+  kdtree_dists.reserve(results.size());
   for (const auto &it : results) {
     kdtree_dists.push_back(kdtree::chebyshev_distance(query, *it));
   }
@@ -652,6 +655,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN matches brute force", "[kdtree][knn][ch
 
   // Brute force: compute all distances, sort, take first k
   std::vector<int> all_dists;
+  all_dists.reserve(data.size());
   for (const auto &p : data) {
     all_dists.push_back(kdtree::chebyshev_distance(query, p));
   }
@@ -676,6 +680,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN with double points", "[kdtree][knn][che
     auto expected = brute_force_knn(chebyshev_dist{}, data, q, k);
 
     std::vector<kdtree::point<double, 2>> result_points;
+    result_points.reserve(results.size());
     for (const auto &it : results) {
       result_points.push_back(*it);
     }
