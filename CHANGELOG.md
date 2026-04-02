@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - Branch protection hook (no-commit-to-branch) for main and develop
 
+### Changed
+- Update clang-format to v22.1.2 for fleet-wide consistency
+
 ## [2.0.0] - 2026-03-18
 
 ### Added
