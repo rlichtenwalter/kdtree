@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+No changes yet.
+
+## [2.0.1] - 2026-04-02
+
 ### Added
 - Branch protection hook (no-commit-to-branch) for main and develop
 
