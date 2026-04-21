@@ -42,9 +42,13 @@ jobs:
 
       - name: Run pre-commit (commit stage)
         run: uvx --with pre-commit==4.5.1 pre-commit run --all-files --hook-stage pre-commit
+        env:
+          SKIP: no-commit-to-branch
 
       - name: Run pre-commit (push stage)
         run: uvx --with pre-commit==4.5.1 pre-commit run --all-files --hook-stage pre-push
+        env:
+          SKIP: no-commit-to-branch
 
   lint:
     runs-on: ubuntu-latest
