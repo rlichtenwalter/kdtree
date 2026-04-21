@@ -30,21 +30,29 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv + pre-commit
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Run pre-commit (commit stage)
+        run: uvx --with pre-commit==4.5.1 pre-commit run --all-files --hook-stage pre-commit
+
+      - name: Run pre-commit (push stage)
+        run: uvx --with pre-commit==4.5.1 pre-commit run --all-files --hook-stage pre-push
+
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-      - name: Install tools
-        run: pip install pre-commit clang-tidy==20.1.0
-
-      - name: Check formatting
-        run: pre-commit run clang-format --all-files
+      - name: Install clang-tidy
+        run: pip install clang-tidy==20.1.0
 
       - name: Configure (for compile_commands.json)
         run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
