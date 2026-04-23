@@ -39,8 +39,16 @@ endforeach()
 
 add_executable(bench_kdtree bench_kdtree.cpp)
 target_link_libraries(bench_kdtree PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
-target_compile_options(bench_kdtree PRIVATE -O3 ${KDTREE_SANITIZE_FLAGS})
-target_link_options(bench_kdtree    PRIVATE ${KDTREE_SANITIZE_FLAGS})
+# Benchmarks run at -O3 normally. Under KDTREE_SANITIZE=ON, let CMake's
+# Debug preset supply -O0 -g so ASan/UBSan diagnostics attribute to
+# source lines instead of inlined/reordered -O3 output. The runtime
+# timings under sanitizers are not meaningful anyway (sanitizers
+# ~2-3x the cost), so the tradeoff is purely debuggability.
+target_compile_options(bench_kdtree PRIVATE
+    $<$<NOT:$<BOOL:${KDTREE_SANITIZE}>>:-O3>
+    ${KDTREE_SANITIZE_FLAGS}
+)
+target_link_options(bench_kdtree PRIVATE ${KDTREE_SANITIZE_FLAGS})
 
 # --- CLI integration tests ---
 
