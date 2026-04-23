@@ -10,6 +10,10 @@ FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
 include(Catch)
 
+# Inherit the sanitizer flags set at the root so tests and the benchmark
+# exercise the same instrumentation as the CLI when KDTREE_SANITIZE=ON.
+set(KDTREE_TEST_TARGETS test_point test_kdtree test_convex_polygon test_point_in_polygon)
+
 add_executable(test_point test_point.cpp)
 target_link_libraries(test_point PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
 catch_discover_tests(test_point)
@@ -26,11 +30,17 @@ add_executable(test_point_in_polygon test_point_in_polygon.cpp)
 target_link_libraries(test_point_in_polygon PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
 catch_discover_tests(test_point_in_polygon)
 
+foreach(tgt IN LISTS KDTREE_TEST_TARGETS)
+    target_compile_options(${tgt} PRIVATE ${KDTREE_SANITIZE_FLAGS})
+    target_link_options(${tgt}    PRIVATE ${KDTREE_SANITIZE_FLAGS})
+endforeach()
+
 # --- Benchmarks ---
 
 add_executable(bench_kdtree bench_kdtree.cpp)
 target_link_libraries(bench_kdtree PRIVATE kdtree::kdtree Catch2::Catch2WithMain)
-target_compile_options(bench_kdtree PRIVATE -O3)
+target_compile_options(bench_kdtree PRIVATE -O3 ${KDTREE_SANITIZE_FLAGS})
+target_link_options(bench_kdtree    PRIVATE ${KDTREE_SANITIZE_FLAGS})
 
 # --- CLI integration tests ---
 

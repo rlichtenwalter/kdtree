@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `KDTREE_SANITIZE` CMake option that enables AddressSanitizer + UndefinedBehaviorSanitizer on every built target (CLI tool, tests, benchmark) in Debug builds. Includes `-fno-sanitize-recover=all` so every sanitizer diagnostic is a hard error. OFF by default; Release builds are never affected.
+- New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
+
 ### Fixed
 - Skip the `no-commit-to-branch` pre-commit hook in CI `pre-commit` steps: the hook guards local commits to `main`/`develop` and fired spuriously when CI checked out one of those branches, failing the job despite no real commit
 

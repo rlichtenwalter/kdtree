@@ -34,12 +34,37 @@ target_sources(kdtree INTERFACE
         include/kdtree/point_in_polygon.hpp
 )
 
+# --- Sanitizers ---
+# When -DKDTREE_SANITIZE=ON, every consumer of the library (CLI tool,
+# tests, benchmark) is compiled and linked with AddressSanitizer +
+# UndefinedBehaviorSanitizer. Guarded on Debug builds so Release
+# artifacts are unaffected.
+#
+# -fno-sanitize-recover=all makes every sanitizer diagnostic a hard
+# error; without it UBSan reports and continues, which lets CI regress
+# silently.
+#
+# Flags are applied per-target rather than via the header-only INTERFACE
+# library, so build-time sanitizer requirements never leak into the
+# installed/exported targets that downstream consumers pick up via
+# find_package(kdtree). Each flag is its own generator expression
+# (specified, portable) rather than a semicolon-separated list inside a
+# single genex (depends on generator-specific split behavior).
+option(KDTREE_SANITIZE "Enable AddressSanitizer + UndefinedBehaviorSanitizer in Debug builds" OFF)
+set(KDTREE_SANITIZE_FLAGS
+    $<$<BOOL:${KDTREE_SANITIZE}>:$<$<CONFIG:Debug>:-fsanitize=address,undefined>>
+    $<$<BOOL:${KDTREE_SANITIZE}>:$<$<CONFIG:Debug>:-fno-sanitize-recover=all>>
+    $<$<BOOL:${KDTREE_SANITIZE}>:$<$<CONFIG:Debug>:-fno-omit-frame-pointer>>
+)
+
 # --- CLI tool ---
 add_executable(kdtree-cli tools/kdtree-cli.cpp)
 target_link_libraries(kdtree-cli PRIVATE kdtree::kdtree)
 target_compile_definitions(kdtree-cli PRIVATE
     KDTREE_VERSION="${PROJECT_VERSION}"
 )
+target_compile_options(kdtree-cli PRIVATE ${KDTREE_SANITIZE_FLAGS})
+target_link_options(kdtree-cli    PRIVATE ${KDTREE_SANITIZE_FLAGS})
 set_target_properties(kdtree-cli PROPERTIES OUTPUT_NAME kdtree)
 
 # --- Tests ---
