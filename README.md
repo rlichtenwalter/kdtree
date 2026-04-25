@@ -42,9 +42,18 @@ auto it = kdtree::nnsearch_kdtree<16>(points.cbegin(), points.cend(), query);
 
 ## Building
 
+Requires CMake ≥ 3.24.
+
 ```bash
 cmake -B build
 cmake --build build
+```
+
+To force a fresh configure (drop the cached CMake state and reconfigure
+from scratch — useful after changing the toolchain or build options):
+
+```bash
+cmake -B build --fresh
 ```
 
 To build in debug mode:
