@@ -73,11 +73,21 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
+    # CC/CXX pinned to clang so the generated compile_commands.json does
+    # not include GCC-only flags (-Wlogical-op, -Wduplicated-cond) that
+    # clang-tidy cannot parse — the GCC-gated genexes in
+    # KDTREE_WARNING_FLAGS evaluate to empty when CXX is clang++.
+    env:
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install clang-tidy
-        run: pip install clang-tidy==20.1.0
+      - name: Install clang and clang-tidy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang
+          pip install clang-tidy==20.1.0
 
       - name: Configure (for compile_commands.json)
         run: cmake --preset=release

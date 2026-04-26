@@ -91,7 +91,7 @@ void make_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end, di
   using point_type = typename std::iterator_traits<RandomAccessIterator>::value_type;
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
   constexpr auto d = point_type::dimensionality();
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n > LeafThreshold) {
     RandomAccessIterator median = begin + static_cast<diff_t>(n / 2);
     auto comp = [dim](auto const &lhs, auto const &rhs) {
@@ -116,7 +116,7 @@ template <class RandomAccessIterator>
 void print_kdtree_helper(std::ostream &os, RandomAccessIterator begin, RandomAccessIterator end,
                          depth_type depth) {
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n > 0) {
     RandomAccessIterator median = begin + static_cast<diff_t>(n / 2);
     std::fill_n(std::ostream_iterator<std::string>(os), depth, " | ");
@@ -134,7 +134,7 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
                             RandomAccessIterator &closest) {
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
   constexpr auto d = Point::dimensionality();
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n == 0) {
     return;
   }
@@ -179,7 +179,7 @@ void nnsearch_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator end
                             Compare const &comp) {
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
   constexpr auto d = Point::dimensionality();
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n == 0) {
     return;
   }
@@ -221,7 +221,7 @@ void rangequery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator e
                               OutputIt &out) {
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
   constexpr auto d = Point::dimensionality();
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n == 0) {
     return;
   }
@@ -258,7 +258,7 @@ void radiusquery_kdtree_helper(RandomAccessIterator begin, RandomAccessIterator 
                                OutputIt &out) {
   using diff_t = typename std::iterator_traits<RandomAccessIterator>::difference_type;
   constexpr auto d = Point::dimensionality();
-  std::size_t n = static_cast<std::size_t>(end - begin);
+  auto n = static_cast<std::size_t>(end - begin);
   if (n == 0) {
     return;
   }
