@@ -65,8 +65,24 @@ set(KDTREE_SANITIZE_FLAGS
 #
 # -Wno-unused-local-typedefs suppresses noise from CRTP/SFINAE-style
 # helpers in the public headers.
+#
+# Beyond -Wall -Wextra -pedantic, the expanded set catches:
+#   -Wconversion           lossy implicit numeric conversions
+#   -Wsign-conversion      signed<->unsigned implicit conversions
+#   -Wshadow               variables shadowing outer-scope names
+#   -Wnull-dereference     statically-provable null derefs
+#   -Wdouble-promotion     implicit float->double (float literal to
+#                          double via "3.14" instead of "3.14f", etc.)
+#   -Wimplicit-fallthrough switch case missing [[fallthrough]] attr
+# GCC adds two more that Clang does not implement:
+#   -Wlogical-op           `a || a` / `a && a` typos
+#   -Wduplicated-cond      `if(a) ... else if(a)` typos
 set(KDTREE_WARNING_FLAGS
     -Wall -Wextra -Werror -pedantic -Wno-unused-local-typedefs
+    -Wconversion -Wsign-conversion -Wshadow -Wnull-dereference
+    -Wdouble-promotion -Wimplicit-fallthrough
+    $<$<CXX_COMPILER_ID:GNU>:-Wlogical-op>
+    $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-cond>
 )
 
 # --- CLI tool ---

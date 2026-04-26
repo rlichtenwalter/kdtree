@@ -296,11 +296,11 @@ template <typename T, std::size_t d> struct hash<kdtree::point<T, d>> {
   using argument_type = kdtree::point<T, d>;
   using result_type = std::size_t;
   result_type operator()(argument_type const &key) const noexcept {
-    result_type hash = 0;
+    result_type seed = 0;
     for (auto const xi : key) {
-      hash ^= std::hash<T>{}(xi) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+      seed ^= std::hash<T>{}(xi) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     }
-    return hash;
+    return seed;
   }
 };
 } // namespace std

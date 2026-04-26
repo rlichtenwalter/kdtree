@@ -36,6 +36,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `KDTREE_WARNING_FLAGS` CMake variable. Previously CLI and tests received only
   `${KDTREE_SANITIZE_FLAGS}`, so warnings the production code should reject could slide
   through silently. Adding a flag to `KDTREE_WARNING_FLAGS` now lands in every consumer build at once.
+- `KDTREE_WARNING_FLAGS` expanded with `-Wconversion -Wsign-conversion
+  -Wshadow -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough`
+  plus GCC-only `-Wlogical-op` and `-Wduplicated-cond`. Mechanical fallout
+  fixed: six iterator-arithmetic conversion sites in `make_kdtree_helper`,
+  `print_kdtree_helper`, the two `nnsearch_kdtree_helper` overloads,
+  `rangequery_kdtree_helper`, and `radiusquery_kdtree_helper` now declare
+  a local `using diff_t = ...iterator_traits...::difference_type` and
+  cast at the `size_t`<->`difference_type` boundary instead of relying on
+  implicit narrowing. The `std::hash<point>` specialization renamed its
+  local accumulator from `hash` to `seed` to avoid shadowing the
+  enclosing template specialization.
+- Catch2's INTERFACE_INCLUDE_DIRECTORIES are now reassigned to
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES post-`FetchContent_MakeAvailable`,
+  so warnings from Catch2's own headers (notably Clang's
+  `-Wdouble-promotion` firing inside `catch_matchers_impl.hpp`'s
+  float-vs-double comparison helpers) no longer break our `-Werror`
+  builds. CMake 3.25 added a `SYSTEM` keyword to `FetchContent_Declare`
+  that would do this declaratively; we still target 3.24 as the floor
+  so the property reassignment is done manually.
 - **BREAKING**: CMake minimum requirement raised from 3.21 to 3.24. CMake 3.24 introduced `cmake -B build --fresh`, a one-command cache clobber + reconfigure that eliminates the ad-hoc `rm -rf build/CMakeCache.txt` pattern. All current target distros ship CMake >= 3.24 in their default repositories (Rocky Linux 9 AppStream = 3.26.5, Rocky Linux 10 AppStream = 3.30.5, Ubuntu 24.04 LTS = 3.28.x), so the bump imposes no new constraint on contributors. Sibling C++ libraries (`vcp`, `mRMR`) receive the same bump in coordinated PRs.
 - `.gitea/workflows/ci.yml` now invokes presets instead of inline
   `-DCMAKE_BUILD_TYPE=...` / `-DKDTREE_SANITIZE=ON` flags. The
