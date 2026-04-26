@@ -57,13 +57,25 @@ set(KDTREE_SANITIZE_FLAGS
     $<$<BOOL:${KDTREE_SANITIZE}>:$<$<CONFIG:Debug>:-fno-omit-frame-pointer>>
 )
 
+# --- Warning flags ---
+# Shared baseline applied to every target that consumes the library
+# (CLI, tests, benchmark). Centralized so that a flag added here lands
+# in every consumer build at once and the test/benchmark targets cannot
+# silently slide past warnings the CLI would error on.
+#
+# -Wno-unused-local-typedefs suppresses noise from CRTP/SFINAE-style
+# helpers in the public headers.
+set(KDTREE_WARNING_FLAGS
+    -Wall -Wextra -Werror -pedantic -Wno-unused-local-typedefs
+)
+
 # --- CLI tool ---
 add_executable(kdtree-cli tools/kdtree-cli.cpp)
 target_link_libraries(kdtree-cli PRIVATE kdtree::kdtree)
 target_compile_definitions(kdtree-cli PRIVATE
     KDTREE_VERSION="${PROJECT_VERSION}"
 )
-target_compile_options(kdtree-cli PRIVATE ${KDTREE_SANITIZE_FLAGS})
+target_compile_options(kdtree-cli PRIVATE ${KDTREE_WARNING_FLAGS} ${KDTREE_SANITIZE_FLAGS})
 target_link_options(kdtree-cli    PRIVATE ${KDTREE_SANITIZE_FLAGS})
 set_target_properties(kdtree-cli PROPERTIES OUTPUT_NAME kdtree)
 
