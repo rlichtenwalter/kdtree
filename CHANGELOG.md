@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `check-json` pre-commit hook (commit stage), validates `CMakePresets.json`
+  and any future JSON files at commit time. Closes a small gap flagged by
+  `/standards-check` (`precommit.check_json` warning).
 - `KDTREE_SANITIZE` CMake option that enables AddressSanitizer + UndefinedBehaviorSanitizer on every built target (CLI tool, tests, benchmark) in Debug builds. Includes `-fno-sanitize-recover=all` so every sanitizer diagnostic is a hard error. OFF by default; Release builds are never affected.
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
 - `CMakePresets.json` at the repository root with three named configurations
