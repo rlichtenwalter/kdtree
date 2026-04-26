@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 - `KDTREE_SANITIZE` CMake option that enables AddressSanitizer + UndefinedBehaviorSanitizer on every built target (CLI tool, tests, benchmark) in Debug builds. Includes `-fno-sanitize-recover=all` so every sanitizer diagnostic is a hard error. OFF by default; Release builds are never affected.
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
+- `CMakePresets.json` at the repository root with three named configurations
+  (`release`, `debug`, `sanitize`) covering the meaningful build contexts
+  the project ships. Each preset has its own `binaryDir` under `build/<name>`,
+  so switching between configs no longer triggers a full rebuild — each tree
+  keeps its own warm cache. Build presets and test presets mirror configure
+  presets one-for-one; the `sanitize` test preset carries the
+  `ASAN_OPTIONS` / `UBSAN_OPTIONS` halt-on-error contract that was
+  previously duplicated inline in CI yaml. Preset file at version `3`
+  (CMake 3.21+, well within the 3.24 floor); `cmakeMinimumRequired`
+  declares 3.24 explicitly so older toolchains refuse to load it.
+  IDEs that support presets (VSCode CMake Tools, CLion, KDevelop, Qt
+  Creator) read the file directly. Schema string intentionally omitted:
+  CMake errors on `$schema` below preset version 8, and version 8
+  requires CMake 3.30 — outside our floor.
 
 ### Changed
 - CI `build-and-test` job extended with a Clang matrix entry; both GCC and Clang now build
@@ -23,6 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `${KDTREE_SANITIZE_FLAGS}`, so warnings the production code should reject could slide
   through silently. Adding a flag to `KDTREE_WARNING_FLAGS` now lands in every consumer build at once.
 - **BREAKING**: CMake minimum requirement raised from 3.21 to 3.24. CMake 3.24 introduced `cmake -B build --fresh`, a one-command cache clobber + reconfigure that eliminates the ad-hoc `rm -rf build/CMakeCache.txt` pattern. All current target distros ship CMake >= 3.24 in their default repositories (Rocky Linux 9 AppStream = 3.26.5, Rocky Linux 10 AppStream = 3.30.5, Ubuntu 24.04 LTS = 3.28.x), so the bump imposes no new constraint on contributors. Sibling C++ libraries (`vcp`, `mRMR`) receive the same bump in coordinated PRs.
+- `.gitea/workflows/ci.yml` now invokes presets instead of inline
+  `-DCMAKE_BUILD_TYPE=...` / `-DKDTREE_SANITIZE=ON` flags. The
+  `build-and-test` matrix's `build_type: [Release, Debug]` becomes
+  `preset: [release, debug]`, the `lint` job uses `cmake --preset=release`
+  and `clang-tidy -p build/release`, and the `sanitize` job uses
+  `cmake --preset=sanitize` with `ctest --preset=sanitize`. Sanitizer
+  runtime options now live on the test preset, not the workflow yaml.
+- `.gitignore` simplified: the `build-*/` glob is removed in favor of
+  the existing `build/` rule, since presets place all per-config trees
+  under `build/<name>/`.
 
 ### Fixed
 - Skip the `no-commit-to-branch` pre-commit hook in CI `pre-commit` steps: the hook guards local commits to `main`/`develop` and fired spuriously when CI checked out one of those branches, failing the job despite no real commit
