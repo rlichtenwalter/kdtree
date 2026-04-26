@@ -47,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   implicit narrowing. The `std::hash<point>` specialization renamed its
   local accumulator from `hash` to `seed` to avoid shadowing the
   enclosing template specialization.
+- Catch2's INTERFACE_INCLUDE_DIRECTORIES are now reassigned to
+  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES post-`FetchContent_MakeAvailable`,
+  so warnings from Catch2's own headers (notably Clang's
+  `-Wdouble-promotion` firing inside `catch_matchers_impl.hpp`'s
+  float-vs-double comparison helpers) no longer break our `-Werror`
+  builds. CMake 3.25 added a `SYSTEM` keyword to `FetchContent_Declare`
+  that would do this declaratively; we still target 3.24 as the floor
+  so the property reassignment is done manually.
 - **BREAKING**: CMake minimum requirement raised from 3.21 to 3.24. CMake 3.24 introduced `cmake -B build --fresh`, a one-command cache clobber + reconfigure that eliminates the ad-hoc `rm -rf build/CMakeCache.txt` pattern. All current target distros ship CMake >= 3.24 in their default repositories (Rocky Linux 9 AppStream = 3.26.5, Rocky Linux 10 AppStream = 3.30.5, Ubuntu 24.04 LTS = 3.28.x), so the bump imposes no new constraint on contributors. Sibling C++ libraries (`vcp`, `mRMR`) receive the same bump in coordinated PRs.
 - `.gitea/workflows/ci.yml` now invokes presets instead of inline
   `-DCMAKE_BUILD_TYPE=...` / `-DKDTREE_SANITIZE=ON` flags. The
