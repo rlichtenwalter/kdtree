@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
 
 ### Changed
+- CI `build-and-test` job extended with a Clang matrix entry; both GCC and Clang now build
+  the library, CLI, tests, and benchmark, and run the full ctest suite at Release and Debug.
+  The library is header-only and implicitly promised Clang compatibility; the matrix makes
+  that promise enforceable on every PR. Matrix is `{compiler: gcc, clang} × {build_type: Release, Debug}`
+  with `fail-fast: false`.
+- CLI, test, and benchmark targets now compile with shared warning flags
+  (`-Wall -Wextra -Werror -pedantic -Wno-unused-local-typedefs`) via a new
+  `KDTREE_WARNING_FLAGS` CMake variable. Previously CLI and tests received only
+  `${KDTREE_SANITIZE_FLAGS}`, so warnings the production code should reject could slide
+  through silently. Adding a flag to `KDTREE_WARNING_FLAGS` now lands in every consumer build at once.
 - **BREAKING**: CMake minimum requirement raised from 3.21 to 3.24. CMake 3.24 introduced `cmake -B build --fresh`, a one-command cache clobber + reconfigure that eliminates the ad-hoc `rm -rf build/CMakeCache.txt` pattern. All current target distros ship CMake >= 3.24 in their default repositories (Rocky Linux 9 AppStream = 3.26.5, Rocky Linux 10 AppStream = 3.30.5, Ubuntu 24.04 LTS = 3.28.x), so the bump imposes no new constraint on contributors. Sibling C++ libraries (`vcp`, `mRMR`) receive the same bump in coordinated PRs.
 
 ### Fixed

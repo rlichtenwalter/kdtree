@@ -31,7 +31,7 @@ target_link_libraries(test_point_in_polygon PRIVATE kdtree::kdtree Catch2::Catch
 catch_discover_tests(test_point_in_polygon)
 
 foreach(tgt IN LISTS KDTREE_TEST_TARGETS)
-    target_compile_options(${tgt} PRIVATE ${KDTREE_SANITIZE_FLAGS})
+    target_compile_options(${tgt} PRIVATE ${KDTREE_WARNING_FLAGS} ${KDTREE_SANITIZE_FLAGS})
     target_link_options(${tgt}    PRIVATE ${KDTREE_SANITIZE_FLAGS})
 endforeach()
 
@@ -46,6 +46,7 @@ target_link_libraries(bench_kdtree PRIVATE kdtree::kdtree Catch2::Catch2WithMain
 # ~2-3x the cost), so the tradeoff is purely debuggability.
 target_compile_options(bench_kdtree PRIVATE
     $<$<NOT:$<BOOL:${KDTREE_SANITIZE}>>:-O3>
+    ${KDTREE_WARNING_FLAGS}
     ${KDTREE_SANITIZE_FLAGS}
 )
 target_link_options(bench_kdtree PRIVATE ${KDTREE_SANITIZE_FLAGS})
