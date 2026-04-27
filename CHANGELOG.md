@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     source changes were forced; the bump aligns kdtree's minimum
     standard with `vcp` and clears the way for opportunistic adoption
     of C++20 idioms at the next refactor.
+  - `.clang-tidy` suppresses `modernize-concat-nested-namespaces`,
+    matching `vcp`. The C++17 modernizer did not fire under C++14 but
+    does under C++20 (against the existing `namespace kdtree { namespace
+    detail { ... } }` patterns) — the suppression preserves the current
+    namespace style as an explicit project choice.
   - Per-build-type compile flags applied to `kdtree-cli`, matching the
     `vcp` pattern: `$<$<CONFIG:Release>:-O3 -fomit-frame-pointer
     -DNDEBUG>` and `$<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>`.
