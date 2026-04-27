@@ -80,12 +80,12 @@ TEST_CASE("make_kdtree with single element", "[kdtree][make]") {
 TEST_CASE("make_kdtree preserves all elements", "[kdtree][make]") {
   std::vector<kdtree::point<int, 2>> data = {{1, 3}, {2, 7}, {-3, 6}, {-2, -1}, {-7, 4}};
   auto sorted_before = data;
-  std::sort(sorted_before.begin(), sorted_before.end());
+  std::ranges::sort(sorted_before);
 
   kdtree::make_kdtree(data.begin(), data.end());
 
   auto sorted_after = data;
-  std::sort(sorted_after.begin(), sorted_after.end());
+  std::ranges::sort(sorted_after);
   REQUIRE(sorted_before == sorted_after);
 }
 
@@ -326,7 +326,7 @@ TEST_CASE("nnsearch_kdtree kNN matches brute force", "[kdtree][knn]") {
   for (const auto &it : results) {
     result_points.push_back(*it);
   }
-  std::sort(result_points.begin(), result_points.end());
+  std::ranges::sort(result_points);
 
   REQUIRE(result_points == expected);
 }
@@ -651,7 +651,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN matches brute force", "[kdtree][knn][ch
   for (const auto &it : results) {
     kdtree_dists.push_back(kdtree::chebyshev_distance(query, *it));
   }
-  std::sort(kdtree_dists.begin(), kdtree_dists.end());
+  std::ranges::sort(kdtree_dists);
 
   // Brute force: compute all distances, sort, take first k
   std::vector<int> all_dists;
@@ -659,7 +659,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN matches brute force", "[kdtree][knn][ch
   for (const auto &p : data) {
     all_dists.push_back(kdtree::chebyshev_distance(query, p));
   }
-  std::sort(all_dists.begin(), all_dists.end());
+  std::ranges::sort(all_dists);
   std::vector<int> expected_dists(all_dists.begin(), all_dists.begin() + static_cast<long>(k));
 
   REQUIRE(kdtree_dists == expected_dists);
@@ -684,7 +684,7 @@ TEST_CASE("nnsearch_kdtree chebyshev kNN with double points", "[kdtree][knn][che
     for (const auto &it : results) {
       result_points.push_back(*it);
     }
-    std::sort(result_points.begin(), result_points.end());
+    std::ranges::sort(result_points);
 
     REQUIRE(result_points.size() == expected.size());
     for (std::size_t i = 0; i < result_points.size(); ++i) {

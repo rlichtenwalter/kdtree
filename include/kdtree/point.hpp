@@ -44,8 +44,10 @@ public:
    *
    * Enabled only when the number of arguments matches the dimensionality.
    */
-  template <class... T2, typename std::enable_if<sizeof...(T2) == d, int>::type = 0>
-  point(T2... args) : _coordinates{std::forward<T2>(args)...} {}
+  template <class... T2>
+  point(T2... args)
+    requires(sizeof...(T2) == d)
+      : _coordinates{std::forward<T2>(args)...} {}
 
   /** @brief Return the number of dimensions (compile-time constant). */
   static constexpr typename storage_type::size_type dimensionality() noexcept { return d; }
@@ -55,14 +57,20 @@ public:
     return _coordinates[dimension];
   }
 
-  bool operator==(point const &other) const {
-    return std::equal(this->begin(), this->end(), other.begin(), other.end());
-  }
-
-  /** @brief Lexicographic ordering over coordinates. */
-  bool operator<(point const &other) const {
-    return std::lexicographical_compare(this->begin(), this->end(), other.begin(), other.end());
-  }
+  /**
+   * @brief Member-wise equality and lexicographic three-way comparison.
+   *
+   * The defaulted operators delegate to the underlying `std::array`'s
+   * comparison operators, which compare element-wise (and lexicographically
+   * for `<=>`), matching the semantics this class previously provided
+   * via explicit `std::equal`/`std::lexicographical_compare` calls.
+   *
+   * Defaulting `<=>` synthesizes all six relational operators in one
+   * declaration and lets `point` model `std::totally_ordered`, which is
+   * required by `std::ranges::sort` and other range algorithms.
+   */
+  bool operator==(point const &other) const = default;
+  auto operator<=>(point const &other) const = default;
 
   point operator+(point const &other) const {
     point result;
@@ -131,12 +139,18 @@ auto squared_euclidean_distance(point<T, d> const &p1, point<U, d> const &p2)
 namespace detail {
 
 /** @brief Absolute difference safe for both signed and unsigned types. */
-template <class T> typename std::enable_if<std::is_signed<T>::value, T>::type abs_diff(T a, T b) {
+template <class T>
+T abs_diff(T a, T b)
+  requires std::is_signed<T>::value
+{
   T diff = a - b;
   return diff < 0 ? -diff : diff;
 }
 
-template <class T> typename std::enable_if<std::is_unsigned<T>::value, T>::type abs_diff(T a, T b) {
+template <class T>
+T abs_diff(T a, T b)
+  requires std::is_unsigned<T>::value
+{
   return a >= b ? a - b : b - a;
 }
 

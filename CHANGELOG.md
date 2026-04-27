@@ -23,6 +23,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     does under C++20 (against the existing `namespace kdtree { namespace
     detail { ... } }` patterns) — the suppression preserves the current
     namespace style as an explicit project choice.
+  - C++20 modernizations applied across the library, CLI, and tests to
+    satisfy the active clang-tidy checks at the new standard:
+    - `point` now defaults `operator==` and `operator<=>` (replacing
+      the prior explicit `std::equal` / `std::lexicographical_compare`
+      implementations). The defaulted three-way comparison delegates
+      member-wise to the underlying `std::array`, which itself
+      provides defaulted `<=>` in C++20 — same lexicographic semantics
+      as before, but synthesizes all six relational operators in one
+      declaration and lets `point` model `std::totally_ordered`,
+      satisfying `std::ranges::sort`'s requirements.
+    - SFINAE `std::enable_if` guards on `point`'s variadic constructor
+      and the `detail::abs_diff` overloads replaced with C++20
+      `requires`-clauses (`modernize-use-constraints`).
+    - `std::sort(it, it)` -> `std::ranges::sort(range)` across
+      `test_kdtree.cpp`, `test_convex_polygon.cpp`, and `kdtree-cli.cpp`
+      (`modernize-use-ranges`).
+    - Index-counted `for` loops replaced with range-based equivalents
+      in `test_convex_polygon.cpp` (`modernize-loop-convert`).
+    - `getopt`'s `option` array initialized with C++20 designated
+      initializers in `kdtree-cli.cpp`
+      (`modernize-use-designated-initializers`).
+  - CI `lint` job no longer passes header globs directly to
+    `clang-tidy`; only `tools/*.cpp` and `test/*.cpp` are listed, and
+    the `HeaderFilterRegex` in `.clang-tidy` propagates diagnostics
+    back to public headers via the source TUs that include them.
+    Direct header invocation forced clang-tidy into a "running without
+    flags" fallback (no `compile_commands.json` entry exists for
+    headers in isolation), which broke parsing for the new C++20
+    syntax (`requires`, `<=>`) under clang-tidy's default C++17
+    fallback.
   - Per-build-type compile flags applied to `kdtree-cli`, matching the
     `vcp` pattern: `$<$<CONFIG:Release>:-O3 -fomit-frame-pointer
     -DNDEBUG>` and `$<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>`.
