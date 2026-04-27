@@ -17,7 +17,7 @@ include(GNUInstallDirs)
 add_library(kdtree INTERFACE)
 add_library(kdtree::kdtree ALIAS kdtree)
 
-target_compile_features(kdtree INTERFACE cxx_std_14)
+target_compile_features(kdtree INTERFACE cxx_std_20)
 
 target_include_directories(kdtree INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -85,15 +85,35 @@ set(KDTREE_WARNING_FLAGS
     $<$<CXX_COMPILER_ID:GNU>:-Wduplicated-cond>
 )
 
+# Clang's -flto produces LLVM bitcode that the default GNU `ld` cannot
+# read ("file format not recognized"). Route Clang link steps through
+# `lld`, which speaks bitcode natively. CI installs `lld` alongside
+# `clang`. GCC builds keep their default linker.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_link_options(-fuse-ld=lld)
+endif()
+
 # --- CLI tool ---
 add_executable(kdtree-cli tools/kdtree-cli.cpp)
 target_link_libraries(kdtree-cli PRIVATE kdtree::kdtree)
 target_compile_definitions(kdtree-cli PRIVATE
     KDTREE_VERSION="${PROJECT_VERSION}"
 )
-target_compile_options(kdtree-cli PRIVATE ${KDTREE_WARNING_FLAGS} ${KDTREE_SANITIZE_FLAGS})
+target_compile_options(kdtree-cli PRIVATE
+    ${KDTREE_WARNING_FLAGS}
+    ${KDTREE_SANITIZE_FLAGS}
+    $<$<CONFIG:Release>:-O3 -fomit-frame-pointer -DNDEBUG>
+    $<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>
+)
 target_link_options(kdtree-cli    PRIVATE ${KDTREE_SANITIZE_FLAGS})
-set_target_properties(kdtree-cli PROPERTIES OUTPUT_NAME kdtree)
+# Enable LTO via the CMake property rather than a raw -flto flag.
+# CMake handles the gcc-vs-clang toolchain difference (gcc-ar /
+# gcc-ranlib for gcc; llvm-ar / llvm-ranlib for clang) automatically,
+# selecting -flto / -flto=thin / -flto=auto as appropriate per compiler.
+set_target_properties(kdtree-cli PROPERTIES
+    OUTPUT_NAME kdtree
+    INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE
+)
 
 # --- Tests ---
 option(KDTREE_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})

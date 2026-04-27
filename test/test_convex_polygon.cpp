@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <ranges>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -116,8 +118,8 @@ TEST_CASE("convex_polygon reverse iterators traverse vertices in reverse", "[pol
 
   // Collect vertices via reverse iteration
   std::vector<point> reversed;
-  for (auto it = poly.rbegin(); it != poly.rend(); ++it) {
-    reversed.push_back(*it);
+  for (auto &it : std::ranges::reverse_view(poly)) {
+    reversed.push_back(it);
   }
 
   // Collect vertices via forward iteration
@@ -127,7 +129,7 @@ TEST_CASE("convex_polygon reverse iterators traverse vertices in reverse", "[pol
   }
 
   // Reverse of forward should equal the reverse-iterated result
-  std::reverse(forward.begin(), forward.end());
+  std::ranges::reverse(forward);
   REQUIRE(reversed == forward);
   REQUIRE(reversed.size() == poly.size());
 }

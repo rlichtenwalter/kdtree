@@ -11,6 +11,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `check-json` pre-commit hook (commit stage), validates `CMakePresets.json`
   and any future JSON files at commit time. Closes a small gap flagged by
   `/standards-check` (`precommit.check_json` warning).
+- Sibling-alignment cleanup matching the conventions in `vcp` and the
+  in-progress mRMR alignment:
+  - **C++ standard bumped to C++20** (`cxx_std_14` → `cxx_std_20` in
+    `CMakeLists.txt`). C++14 was already a valid subset of C++20, so no
+    source changes were forced; the bump aligns kdtree's minimum
+    standard with `vcp` and clears the way for opportunistic adoption
+    of C++20 idioms at the next refactor.
+  - `.clang-tidy` suppresses `modernize-concat-nested-namespaces`,
+    matching `vcp`. The C++17 modernizer did not fire under C++14 but
+    does under C++20 (against the existing `namespace kdtree { namespace
+    detail { ... } }` patterns) — the suppression preserves the current
+    namespace style as an explicit project choice.
+  - C++20 modernizations applied across the library, CLI, and tests to
+    satisfy the active clang-tidy checks at the new standard:
+    - `point` now defaults `operator==` and `operator<=>` (replacing
+      the prior explicit `std::equal` / `std::lexicographical_compare`
+      implementations). The defaulted three-way comparison delegates
+      member-wise to the underlying `std::array`, which itself
+      provides defaulted `<=>` in C++20 — same lexicographic semantics
+      as before, but synthesizes all six relational operators in one
+      declaration and lets `point` model `std::totally_ordered`,
+      satisfying `std::ranges::sort`'s requirements.
+    - SFINAE `std::enable_if` guards on `point`'s variadic constructor
+      and the `detail::abs_diff` overloads replaced with C++20
+      `requires`-clauses (`modernize-use-constraints`).
+    - `std::sort(it, it)` -> `std::ranges::sort(range)` across
+      `test_kdtree.cpp`, `test_convex_polygon.cpp`, and `kdtree-cli.cpp`
+      (`modernize-use-ranges`).
+    - Index-counted `for` loops replaced with range-based equivalents
+      in `test_convex_polygon.cpp` (`modernize-loop-convert`).
+    - `getopt`'s `option` array initialized with C++20 designated
+      initializers in `kdtree-cli.cpp`
+      (`modernize-use-designated-initializers`).
+  - CI `lint` job no longer passes header globs directly to
+    `clang-tidy`; only `tools/*.cpp` and `test/*.cpp` are listed, and
+    the `HeaderFilterRegex` in `.clang-tidy` propagates diagnostics
+    back to public headers via the source TUs that include them.
+    Direct header invocation forced clang-tidy into a "running without
+    flags" fallback (no `compile_commands.json` entry exists for
+    headers in isolation), which broke parsing for the new C++20
+    syntax (`requires`, `<=>`) under clang-tidy's default C++17
+    fallback.
+  - Per-build-type compile flags applied to `kdtree-cli`, matching the
+    `vcp` pattern: `$<$<CONFIG:Release>:-O3 -fomit-frame-pointer
+    -DNDEBUG>` and `$<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>`.
+    Previously `kdtree-cli` received only warning + sanitize flags and
+    relied entirely on CMake's default `Release`/`Debug` flags, which
+    omitted `-fomit-frame-pointer` on Release.
+  - Link-time optimization on `kdtree-cli` Release builds via
+    `INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE`. CMake handles the
+    gcc-vs-clang toolchain difference (`gcc-ar`/`gcc-ranlib` vs
+    `llvm-ar`/`llvm-ranlib`) automatically. Clang's bitcode-only LTO
+    output requires `lld` for linking, so `add_link_options(-fuse-ld=lld)`
+    is set when the compiler is Clang and the CI `build-and-test`
+    install step adds `lld` alongside `clang`.
 - `KDTREE_SANITIZE` CMake option that enables AddressSanitizer + UndefinedBehaviorSanitizer on every built target (CLI tool, tests, benchmark) in Debug builds. Includes `-fno-sanitize-recover=all` so every sanitizer diagnostic is a hard error. OFF by default; Release builds are never affected.
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
 - `CMakePresets.json` at the repository root with three named configurations

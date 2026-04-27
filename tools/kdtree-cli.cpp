@@ -115,7 +115,7 @@ static void run_query(std::vector<point> &points, point const &query, std::size_
                                 : static_cast<double>(dist);
       sorted.emplace_back(display_dist, *it);
     }
-    std::sort(sorted.begin(), sorted.end());
+    std::ranges::sort(sorted);
     for (auto const &entry : sorted) {
       out << entry.second << " " << entry.first << "\n";
     }
@@ -138,14 +138,15 @@ int main(int argc, char *argv[]) {
     int c;
     int option_index = 0;
     while (true) {
-      static struct option long_options[] = {{"query", required_argument, nullptr, 'q'},
-                                             {"k", required_argument, nullptr, OPT_K},
-                                             {"metric", required_argument, nullptr, OPT_METRIC},
-                                             {"print-tree", no_argument, nullptr, OPT_PRINT_TREE},
-                                             {"verbosity", required_argument, nullptr, 'v'},
-                                             {"help", no_argument, nullptr, 'h'},
-                                             {"version", no_argument, nullptr, 'V'},
-                                             {nullptr, 0, nullptr, 0}};
+      static struct option long_options[] = {
+          {.name = "query", .has_arg = required_argument, .flag = nullptr, .val = 'q'},
+          {.name = "k", .has_arg = required_argument, .flag = nullptr, .val = OPT_K},
+          {.name = "metric", .has_arg = required_argument, .flag = nullptr, .val = OPT_METRIC},
+          {.name = "print-tree", .has_arg = no_argument, .flag = nullptr, .val = OPT_PRINT_TREE},
+          {.name = "verbosity", .has_arg = required_argument, .flag = nullptr, .val = 'v'},
+          {.name = "help", .has_arg = no_argument, .flag = nullptr, .val = 'h'},
+          {.name = "version", .has_arg = no_argument, .flag = nullptr, .val = 'V'},
+          {.name = nullptr, .has_arg = 0, .flag = nullptr, .val = 0}};
       c = getopt_long(argc, argv, "q:v:hV", long_options, &option_index);
       if (c == -1) {
         break;
