@@ -134,4 +134,4 @@ pkg-config --cflags kdtree
 
 ## License
 
-MIT
+BSD 3-Clause. See [LICENSE](LICENSE).

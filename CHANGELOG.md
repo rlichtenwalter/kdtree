@@ -84,6 +84,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   requires CMake 3.30 — outside our floor.
 
 ### Changed
+- **License migrated from MIT to BSD 3-Clause**, matching the licenses now
+  used by sibling C++ libraries `vcp` and `mRMR`. Copyright line updated to
+  `2020-2026, Ryan N. Lichtenwalter`. README license section updated to
+  point at `LICENSE`.
 - CI `build-and-test` job extended with a Clang matrix entry; both GCC and Clang now build
   the library, CLI, tests, and benchmark, and run the full ctest suite at Release and Debug.
   The library is header-only and implicitly promised Clang compatibility; the matrix makes
