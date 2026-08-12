@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - Gitea Actions workflow that mirrors Gitea releases to GitHub, covering the release metadata the push mirror omits
-  - Manual `workflow_dispatch` path with a `tag` input for backfilling existing releases
+  - Manual `workflow_dispatch` path with a `tag` input for testing or backfill against any existing release
 
 ### Changed
 - Fleet standards alignment: the `mixed-line-ending` pre-commit hook now forces LF, and `.gitignore` covers `.env` secret files
@@ -18,8 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 - `check-json` pre-commit hook validating `CMakePresets.json` and any future JSON files at commit time
-- Sibling-alignment with `vcp`: **C++ standard bumped to C++20**, per-build-type compile flags and Release LTO on `kdtree-cli`, and C++20 idiom modernizations across the library, CLI, and tests
-  - CI `lint` now runs clang-tidy on source files only; `HeaderFilterRegex` propagates diagnostics back to headers
+- Sibling-alignment with `vcp`: **C++ standard bumped to C++20**, with idiom modernizations across the library, CLI, and tests
+  - `point` now defaults `operator==`/`operator<=>`, synthesizing all six relational operators
+- Per-build-type compile flags and Release LTO on `kdtree-cli`, matching the `vcp` pattern
+- CI `lint` now runs clang-tidy on source files only; `HeaderFilterRegex` propagates diagnostics back to headers
 - `KDTREE_SANITIZE` CMake option enabling ASan + UBSan on every built target in Debug builds (OFF by default; Release builds unaffected)
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
 - `CMakePresets.json` with `release`, `debug`, and `sanitize` configurations, each building under its own `build/<name>` tree so switching configs keeps a warm cache
