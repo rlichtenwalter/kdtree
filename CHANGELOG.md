@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Fleet standards alignment: the `mixed-line-ending` pre-commit hook now forces LF, and `.gitignore` ignores `.env` secret files while allowing `.env.example`
+- Remove retired develop branch from CI triggers and pre-commit branch guard
 
 ## [3.0.0] - 2026-04-27
 
