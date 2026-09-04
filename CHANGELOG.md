@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Fleet standards alignment: the `mixed-line-ending` pre-commit hook now forces LF, and `.gitignore` ignores `.env` secret files while allowing `.env.example`
 - Remove retired develop branch from CI triggers and pre-commit branch guard
 
+### Removed
+
+- Remove the unused `.kacl.yml`: nothing invoked kacl, and its structural rules are stricter than the Keep a Changelog spec states
+
 ## [3.0.0] - 2026-04-27
 
 ### Added
