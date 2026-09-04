@@ -2,157 +2,71 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/),
-and this project adheres to [Semantic Versioning](https://semver.org/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Added
+
+- Add prettier and markdownlint to the pre-commit toolchain for consistent markdown formatting
 - Gitea Actions workflow that mirrors Gitea releases to GitHub, covering the release metadata the push mirror omits
   - Manual `workflow_dispatch` path with a `tag` input for testing or backfill against any existing release
 
 ### Changed
+
 - Fleet standards alignment: the `mixed-line-ending` pre-commit hook now forces LF, and `.gitignore` ignores `.env` secret files while allowing `.env.example`
 - Remove retired develop branch from CI triggers and pre-commit branch guard
 
 ## [3.0.0] - 2026-04-27
 
 ### Added
-- `check-json` pre-commit hook (commit stage), validates `CMakePresets.json`
-  and any future JSON files at commit time. Closes a small gap flagged by
-  `/standards-check` (`precommit.check_json` warning).
-- Sibling-alignment cleanup matching the conventions in `vcp` and the
-  in-progress mRMR alignment:
-  - **C++ standard bumped to C++20** (`cxx_std_14` → `cxx_std_20` in
-    `CMakeLists.txt`). C++14 was already a valid subset of C++20, so no
-    source changes were forced; the bump aligns kdtree's minimum
-    standard with `vcp` and clears the way for opportunistic adoption
-    of C++20 idioms at the next refactor.
-  - `.clang-tidy` suppresses `modernize-concat-nested-namespaces`,
-    matching `vcp`. The C++17 modernizer did not fire under C++14 but
-    does under C++20 (against the existing `namespace kdtree { namespace
-    detail { ... } }` patterns) — the suppression preserves the current
-    namespace style as an explicit project choice.
-  - C++20 modernizations applied across the library, CLI, and tests to
-    satisfy the active clang-tidy checks at the new standard:
-    - `point` now defaults `operator==` and `operator<=>` (replacing
-      the prior explicit `std::equal` / `std::lexicographical_compare`
-      implementations). The defaulted three-way comparison delegates
-      member-wise to the underlying `std::array`, which itself
-      provides defaulted `<=>` in C++20 — same lexicographic semantics
-      as before, but synthesizes all six relational operators in one
-      declaration and lets `point` model `std::totally_ordered`,
-      satisfying `std::ranges::sort`'s requirements.
-    - SFINAE `std::enable_if` guards on `point`'s variadic constructor
-      and the `detail::abs_diff` overloads replaced with C++20
-      `requires`-clauses (`modernize-use-constraints`).
-    - `std::sort(it, it)` -> `std::ranges::sort(range)` across
-      `test_kdtree.cpp`, `test_convex_polygon.cpp`, and `kdtree-cli.cpp`
-      (`modernize-use-ranges`).
-    - Index-counted `for` loops replaced with range-based equivalents
-      in `test_convex_polygon.cpp` (`modernize-loop-convert`).
-    - `getopt`'s `option` array initialized with C++20 designated
-      initializers in `kdtree-cli.cpp`
-      (`modernize-use-designated-initializers`).
-  - CI `lint` job no longer passes header globs directly to
-    `clang-tidy`; only `tools/*.cpp` and `test/*.cpp` are listed, and
-    the `HeaderFilterRegex` in `.clang-tidy` propagates diagnostics
-    back to public headers via the source TUs that include them.
-    Direct header invocation forced clang-tidy into a "running without
-    flags" fallback (no `compile_commands.json` entry exists for
-    headers in isolation), which broke parsing for the new C++20
-    syntax (`requires`, `<=>`) under clang-tidy's default C++17
-    fallback.
-  - Per-build-type compile flags applied to `kdtree-cli`, matching the
-    `vcp` pattern: `$<$<CONFIG:Release>:-O3 -fomit-frame-pointer
-    -DNDEBUG>` and `$<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>`.
-    Previously `kdtree-cli` received only warning + sanitize flags and
-    relied entirely on CMake's default `Release`/`Debug` flags, which
-    omitted `-fomit-frame-pointer` on Release.
-  - Link-time optimization on `kdtree-cli` Release builds via
-    `INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE`. CMake handles the
-    gcc-vs-clang toolchain difference (`gcc-ar`/`gcc-ranlib` vs
-    `llvm-ar`/`llvm-ranlib`) automatically. Clang's bitcode-only LTO
-    output requires `lld` for linking, so `add_link_options(-fuse-ld=lld)`
-    is set when the compiler is Clang and the CI `build-and-test`
-    install step adds `lld` alongside `clang`.
+
+- `check-json` pre-commit hook (commit stage), validates `CMakePresets.json` and any future JSON files at commit time. Closes a small gap flagged by `/standards-check` (`precommit.check_json` warning).
+- Sibling-alignment cleanup matching the conventions in `vcp` and the in-progress mRMR alignment:
+  - **C++ standard bumped to C++20** (`cxx_std_14` → `cxx_std_20` in `CMakeLists.txt`). C++14 was already a valid subset of C++20, so no source changes were forced; the bump aligns kdtree's minimum standard with `vcp` and clears the way for opportunistic adoption of C++20 idioms at the next refactor.
+  - `.clang-tidy` suppresses `modernize-concat-nested-namespaces`, matching `vcp`. The C++17 modernizer did not fire under C++14 but does under C++20 (against the existing `namespace kdtree { namespace detail { ... } }` patterns) — the suppression preserves the current namespace style as an explicit project choice.
+  - C++20 modernizations applied across the library, CLI, and tests to satisfy the active clang-tidy checks at the new standard:
+    - `point` now defaults `operator==` and `operator<=>` (replacing the prior explicit `std::equal` / `std::lexicographical_compare` implementations). The defaulted three-way comparison delegates member-wise to the underlying `std::array`, which itself provides defaulted `<=>` in C++20 — same lexicographic semantics as before, but synthesizes all six relational operators in one declaration and lets `point` model `std::totally_ordered`, satisfying `std::ranges::sort`'s requirements.
+    - SFINAE `std::enable_if` guards on `point`'s variadic constructor and the `detail::abs_diff` overloads replaced with C++20 `requires`-clauses (`modernize-use-constraints`).
+    - `std::sort(it, it)` -> `std::ranges::sort(range)` across `test_kdtree.cpp`, `test_convex_polygon.cpp`, and `kdtree-cli.cpp` (`modernize-use-ranges`).
+    - Index-counted `for` loops replaced with range-based equivalents in `test_convex_polygon.cpp` (`modernize-loop-convert`).
+    - `getopt`'s `option` array initialized with C++20 designated initializers in `kdtree-cli.cpp` (`modernize-use-designated-initializers`).
+  - CI `lint` job no longer passes header globs directly to `clang-tidy`; only `tools/*.cpp` and `test/*.cpp` are listed, and the `HeaderFilterRegex` in `.clang-tidy` propagates diagnostics back to public headers via the source TUs that include them. Direct header invocation forced clang-tidy into a "running without flags" fallback (no `compile_commands.json` entry exists for headers in isolation), which broke parsing for the new C++20 syntax (`requires`, `<=>`) under clang-tidy's default C++17 fallback.
+  - Per-build-type compile flags applied to `kdtree-cli`, matching the `vcp` pattern: `$<$<CONFIG:Release>:-O3 -fomit-frame-pointer -DNDEBUG>` and `$<$<CONFIG:Debug>:-Og -g -fno-omit-frame-pointer>`. Previously `kdtree-cli` received only warning + sanitize flags and relied entirely on CMake's default `Release`/`Debug` flags, which omitted `-fomit-frame-pointer` on Release.
+  - Link-time optimization on `kdtree-cli` Release builds via `INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE`. CMake handles the gcc-vs-clang toolchain difference (`gcc-ar`/`gcc-ranlib` vs `llvm-ar`/`llvm-ranlib`) automatically. Clang's bitcode-only LTO output requires `lld` for linking, so `add_link_options(-fuse-ld=lld)` is set when the compiler is Clang and the CI `build-and-test` install step adds `lld` alongside `clang`.
 - `KDTREE_SANITIZE` CMake option that enables AddressSanitizer + UndefinedBehaviorSanitizer on every built target (CLI tool, tests, benchmark) in Debug builds. Includes `-fno-sanitize-recover=all` so every sanitizer diagnostic is a hard error. OFF by default; Release builds are never affected.
 - New CI `sanitize` job that builds Debug with `KDTREE_SANITIZE=ON` and runs the full ctest suite on every PR.
-- `CMakePresets.json` at the repository root with three named configurations
-  (`release`, `debug`, `sanitize`) covering the meaningful build contexts
-  the project ships. Each preset has its own `binaryDir` under `build/<name>`,
-  so switching between configs no longer triggers a full rebuild — each tree
-  keeps its own warm cache. Build presets and test presets mirror configure
-  presets one-for-one; the `sanitize` test preset carries the
-  `ASAN_OPTIONS` / `UBSAN_OPTIONS` halt-on-error contract that was
-  previously duplicated inline in CI yaml. Preset file at version `3`
-  (CMake 3.21+, well within the 3.24 floor); `cmakeMinimumRequired`
-  declares 3.24 explicitly so older toolchains refuse to load it.
-  IDEs that support presets (VSCode CMake Tools, CLion, KDevelop, Qt
-  Creator) read the file directly. Schema string intentionally omitted:
-  CMake errors on `$schema` below preset version 8, and version 8
-  requires CMake 3.30 — outside our floor.
+- `CMakePresets.json` at the repository root with three named configurations (`release`, `debug`, `sanitize`) covering the meaningful build contexts the project ships. Each preset has its own `binaryDir` under `build/<name>`, so switching between configs no longer triggers a full rebuild — each tree keeps its own warm cache. Build presets and test presets mirror configure presets one-for-one; the `sanitize` test preset carries the `ASAN_OPTIONS` / `UBSAN_OPTIONS` halt-on-error contract that was previously duplicated inline in CI yaml. Preset file at version `3` (CMake 3.21+, well within the 3.24 floor); `cmakeMinimumRequired` declares 3.24 explicitly so older toolchains refuse to load it. IDEs that support presets (VSCode CMake Tools, CLion, KDevelop, Qt Creator) read the file directly. Schema string intentionally omitted: CMake errors on `$schema` below preset version 8, and version 8 requires CMake 3.30 — outside our floor.
 
 ### Changed
-- **License migrated from MIT to BSD 3-Clause**, matching the licenses now
-  used by sibling C++ libraries `vcp` and `mRMR`. Copyright line updated to
-  `2020-2026, Ryan N. Lichtenwalter`. README license section updated to
-  point at `LICENSE`.
-- CI `build-and-test` job extended with a Clang matrix entry; both GCC and Clang now build
-  the library, CLI, tests, and benchmark, and run the full ctest suite at Release and Debug.
-  The library is header-only and implicitly promised Clang compatibility; the matrix makes
-  that promise enforceable on every PR. Matrix is `{compiler: gcc, clang} × {build_type: Release, Debug}`
-  with `fail-fast: false`.
-- CLI, test, and benchmark targets now compile with shared warning flags
-  (`-Wall -Wextra -Werror -pedantic -Wno-unused-local-typedefs`) via a new
-  `KDTREE_WARNING_FLAGS` CMake variable. Previously CLI and tests received only
-  `${KDTREE_SANITIZE_FLAGS}`, so warnings the production code should reject could slide
-  through silently. Adding a flag to `KDTREE_WARNING_FLAGS` now lands in every consumer build at once.
-- `KDTREE_WARNING_FLAGS` expanded with `-Wconversion -Wsign-conversion
-  -Wshadow -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough`
-  plus GCC-only `-Wlogical-op` and `-Wduplicated-cond`. Mechanical fallout
-  fixed: six iterator-arithmetic conversion sites in `make_kdtree_helper`,
-  `print_kdtree_helper`, the two `nnsearch_kdtree_helper` overloads,
-  `rangequery_kdtree_helper`, and `radiusquery_kdtree_helper` now declare
-  a local `using diff_t = ...iterator_traits...::difference_type` and
-  cast at the `size_t`<->`difference_type` boundary instead of relying on
-  implicit narrowing. The `std::hash<point>` specialization renamed its
-  local accumulator from `hash` to `seed` to avoid shadowing the
-  enclosing template specialization.
-- Catch2's INTERFACE_INCLUDE_DIRECTORIES are now reassigned to
-  INTERFACE_SYSTEM_INCLUDE_DIRECTORIES post-`FetchContent_MakeAvailable`,
-  so warnings from Catch2's own headers (notably Clang's
-  `-Wdouble-promotion` firing inside `catch_matchers_impl.hpp`'s
-  float-vs-double comparison helpers) no longer break our `-Werror`
-  builds. CMake 3.25 added a `SYSTEM` keyword to `FetchContent_Declare`
-  that would do this declaratively; we still target 3.24 as the floor
-  so the property reassignment is done manually.
+
+- **License migrated from MIT to BSD 3-Clause**, matching the licenses now used by sibling C++ libraries `vcp` and `mRMR`. Copyright line updated to `2020-2026, Ryan N. Lichtenwalter`. README license section updated to point at `LICENSE`.
+- CI `build-and-test` job extended with a Clang matrix entry; both GCC and Clang now build the library, CLI, tests, and benchmark, and run the full ctest suite at Release and Debug. The library is header-only and implicitly promised Clang compatibility; the matrix makes that promise enforceable on every PR. Matrix is `{compiler: gcc, clang} × {build_type: Release, Debug}` with `fail-fast: false`.
+- CLI, test, and benchmark targets now compile with shared warning flags (`-Wall -Wextra -Werror -pedantic -Wno-unused-local-typedefs`) via a new `KDTREE_WARNING_FLAGS` CMake variable. Previously CLI and tests received only `${KDTREE_SANITIZE_FLAGS}`, so warnings the production code should reject could slide through silently. Adding a flag to `KDTREE_WARNING_FLAGS` now lands in every consumer build at once.
+- `KDTREE_WARNING_FLAGS` expanded with `-Wconversion -Wsign-conversion -Wshadow -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough` plus GCC-only `-Wlogical-op` and `-Wduplicated-cond`. Mechanical fallout fixed: six iterator-arithmetic conversion sites in `make_kdtree_helper`, `print_kdtree_helper`, the two `nnsearch_kdtree_helper` overloads, `rangequery_kdtree_helper`, and `radiusquery_kdtree_helper` now declare a local `using diff_t = ...iterator_traits...::difference_type` and cast at the `size_t`<->`difference_type` boundary instead of relying on implicit narrowing. The `std::hash<point>` specialization renamed its local accumulator from `hash` to `seed` to avoid shadowing the enclosing template specialization.
+- Catch2's INTERFACE_INCLUDE_DIRECTORIES are now reassigned to INTERFACE_SYSTEM_INCLUDE_DIRECTORIES post-`FetchContent_MakeAvailable`, so warnings from Catch2's own headers (notably Clang's `-Wdouble-promotion` firing inside `catch_matchers_impl.hpp`'s float-vs-double comparison helpers) no longer break our `-Werror` builds. CMake 3.25 added a `SYSTEM` keyword to `FetchContent_Declare` that would do this declaratively; we still target 3.24 as the floor so the property reassignment is done manually.
 - **BREAKING**: CMake minimum requirement raised from 3.21 to 3.24. CMake 3.24 introduced `cmake -B build --fresh`, a one-command cache clobber + reconfigure that eliminates the ad-hoc `rm -rf build/CMakeCache.txt` pattern. All current target distros ship CMake >= 3.24 in their default repositories (Rocky Linux 9 AppStream = 3.26.5, Rocky Linux 10 AppStream = 3.30.5, Ubuntu 24.04 LTS = 3.28.x), so the bump imposes no new constraint on contributors. Sibling C++ libraries (`vcp`, `mRMR`) receive the same bump in coordinated PRs.
-- `.gitea/workflows/ci.yml` now invokes presets instead of inline
-  `-DCMAKE_BUILD_TYPE=...` / `-DKDTREE_SANITIZE=ON` flags. The
-  `build-and-test` matrix's `build_type: [Release, Debug]` becomes
-  `preset: [release, debug]`, the `lint` job uses `cmake --preset=release`
-  and `clang-tidy -p build/release`, and the `sanitize` job uses
-  `cmake --preset=sanitize` with `ctest --preset=sanitize`. Sanitizer
-  runtime options now live on the test preset, not the workflow yaml.
-- `.gitignore` simplified: the `build-*/` glob is removed in favor of
-  the existing `build/` rule, since presets place all per-config trees
-  under `build/<name>/`.
+- `.gitea/workflows/ci.yml` now invokes presets instead of inline `-DCMAKE_BUILD_TYPE=...` / `-DKDTREE_SANITIZE=ON` flags. The `build-and-test` matrix's `build_type: [Release, Debug]` becomes `preset: [release, debug]`, the `lint` job uses `cmake --preset=release` and `clang-tidy -p build/release`, and the `sanitize` job uses `cmake --preset=sanitize` with `ctest --preset=sanitize`. Sanitizer runtime options now live on the test preset, not the workflow yaml.
+- `.gitignore` simplified: the `build-*/` glob is removed in favor of the existing `build/` rule, since presets place all per-config trees under `build/<name>/`.
 
 ### Fixed
+
 - Skip the `no-commit-to-branch` pre-commit hook in CI `pre-commit` steps: the hook guards local commits to `main`/`develop` and fired spuriously when CI checked out one of those branches, failing the job despite no real commit
 
 ## [2.0.1] - 2026-04-02
 
 ### Added
+
 - Branch protection hook (no-commit-to-branch) for main and develop
 
 ### Changed
+
 - Update clang-format to v22.1.2 for fleet-wide consistency
 
 ## [2.0.0] - 2026-03-18
 
 ### Added
+
 - CMake install support with `find_package(kdtree)` for downstream consumers
 - pkg-config support for non-CMake consumers
 - CTest integration for test executables
@@ -175,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Javadoc-style docstrings on all public API functions and classes
 
 ### Changed
+
 - **BREAKING**: Move headers to `include/kdtree/` subdirectory (use `#include <kdtree/kdtree.hpp>`)
 - **BREAKING**: Derive distance type from the metric policy rather than hardcoding `float`
 - **BREAKING**: `radiusquery_kdtree` radius parameter type changed from `double` to `Point::coordinate_type`
@@ -198,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Rewrite CLI tool: fix verbosity parser, file error handling, input parsing, and help text
 
 ### Fixed
+
 - Nearest neighbor pruning compared squared distance as linear distance against splitting plane gap, causing incorrect results for close floating-point queries
 - k-nearest neighbor pruning had the same squared-vs-linear distance bug
 - k-nearest neighbor result extraction used a dangling pointer after std::move (undefined behavior)
@@ -224,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [1.0.0] - 2020-12-07
 
 ### Added
+
 - K-d tree container adaptor with idiomatic C++ STL interface
 - In-place tree construction via std::nth_element
 - Exact search, nearest neighbor queries, range queries, and radius queries

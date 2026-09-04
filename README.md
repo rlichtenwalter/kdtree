@@ -1,10 +1,34 @@
 # kdtree
 
-There are many k-d tree implementations available, including many good implementations for C++. This particular implementation offers two primary advantages over many others.
+There are many k-d tree implementations available, including many good
+implementations for C++. This particular implementation offers two primary
+advantages over many others.
 
-First, it presents a container adaptor interface that is idiomatic of C++ STL and will be familiar to users of, for instance, the std::heap adaptor. It can operate over any data storage mechanism that provides iterators satisfying the RandomAccessIterator concept. It requires a mutable container and makes heavy use of std::nth_element to perform the bulk of the k-d tree construction effort in place. Likewise, via template parameters, it can operator on any underlying type that provides iterators satisfying the RandomAccessIterator concept to represent the k-dimensional space. For simplicity of usage, a point type is provided that is a compositional facade over std::array, thus offering contiguous storage requiring no additional dynamic allocations. For high-dimensional use cases, a container with dynamically allocated storage, such as std::vector, may allow for faster tree construction through less expensive point swaps.
+First, it presents a container adaptor interface that is idiomatic of C++ STL
+and will be familiar to users of, for instance, the std::heap adaptor. It can
+operate over any data storage mechanism that provides iterators satisfying the
+RandomAccessIterator concept. It requires a mutable container and makes heavy
+use of std::nth_element to perform the bulk of the k-d tree construction effort
+in place. Likewise, via template parameters, it can operator on any underlying
+type that provides iterators satisfying the RandomAccessIterator concept to
+represent the k-dimensional space. For simplicity of usage, a point type is
+provided that is a compositional facade over std::array, thus offering
+contiguous storage requiring no additional dynamic allocations. For
+high-dimensional use cases, a container with dynamically allocated storage, such
+as std::vector, may allow for faster tree construction through less expensive
+point swaps.
 
-Second, and relatedly, it is written to be extremely memory efficient and to enjoy efficiency gains from locality of reference and superior cache utilization. The underlying coordinate type is a template of the provided point type and allows for the selection of the most memory-efficient appropriate type. With respect to the minimal storage necessary to represent the points themselves, overhead during tree construction and search algorithm execution is limited to incidental automatic storage of primitive types, and the O(log(n)) stack depth necessary for the recursions, typically no more than a few KB of overhead for even extremely large data sets. Several potential algorithmic optimizations remain to be applied, but performance is nonetheless favorable compared to several tested implementations.
+Second, and relatedly, it is written to be extremely memory efficient and to
+enjoy efficiency gains from locality of reference and superior cache
+utilization. The underlying coordinate type is a template of the provided point
+type and allows for the selection of the most memory-efficient appropriate type.
+With respect to the minimal storage necessary to represent the points
+themselves, overhead during tree construction and search algorithm execution is
+limited to incidental automatic storage of primitive types, and the O(log(n))
+stack depth necessary for the recursions, typically no more than a few KB of
+overhead for even extremely large data sets. Several potential algorithmic
+optimizations remain to be applied, but performance is nonetheless favorable
+compared to several tested implementations.
 
 ## Usage
 
@@ -30,10 +54,10 @@ auto range = kdtree::rangequery_kdtree(points.cbegin(), points.cend(), lower, up
 auto radius = kdtree::radiusquery_kdtree(points.cbegin(), points.cend(), center, 50.0);
 ```
 
-All functions accept an optional `LeafThreshold` template parameter that controls
-the bucket size for leaf nodes. The default auto-selects a value based on the
-point type and cache line size. If you override it, the same value must be used
-for construction and all subsequent queries:
+All functions accept an optional `LeafThreshold` template parameter that
+controls the bucket size for leaf nodes. The default auto-selects a value based
+on the point type and cache line size. If you override it, the same value must
+be used for construction and all subsequent queries:
 
 ```cpp
 kdtree::make_kdtree<16>(points.begin(), points.end());
@@ -49,8 +73,8 @@ cmake -B build
 cmake --build build
 ```
 
-To force a fresh configure (drop the cached CMake state and reconfigure
-from scratch — useful after changing the toolchain or build options):
+To force a fresh configure (drop the cached CMake state and reconfigure from
+scratch — useful after changing the toolchain or build options):
 
 ```bash
 cmake -B build --fresh
@@ -75,8 +99,8 @@ ctest --test-dir build-san --output-on-failure
 ```
 
 The `sanitize` CI job runs this combination on every PR.
-`-fno-sanitize-recover=all` makes every sanitizer diagnostic a hard
-error; Release builds are never affected.
+`-fno-sanitize-recover=all` makes every sanitizer diagnostic a hard error;
+Release builds are never affected.
 
 ## Testing
 
