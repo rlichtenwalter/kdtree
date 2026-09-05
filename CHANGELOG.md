@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+No changes yet.
+
+## [3.1.0] - 2026-09-05
+
 ### Added
 
 - Add prettier and markdownlint to the pre-commit toolchain for consistent markdown formatting
