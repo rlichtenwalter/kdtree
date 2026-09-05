@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Add CHANGELOG version comparison links
 - Gitea Actions workflow that mirrors Gitea releases to GitHub, covering the release metadata the push mirror omits
   - Manual `workflow_dispatch` path with a `tag` input for testing or backfill against any existing release
+- Scan for hardcoded secrets with gitleaks at the commit stage
 
 ### Changed
 
