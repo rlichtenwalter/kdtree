@@ -169,7 +169,9 @@ No changes yet.
 - Support for custom coordinate types and dynamically-sized containers
 - Memory-efficient design with O(log n) stack overhead
 
-[Unreleased]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v3.0.0...main
+[Unreleased]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v3.2.0...main
+[3.2.0]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v3.1.0...v3.2.0
+[3.1.0]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v3.0.0...v3.1.0
 [3.0.0]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v2.0.1...v3.0.0
 [2.0.1]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v2.0.0...v2.0.1
 [2.0.0]: https://git.lichtenwalter.site/rlichten/kdtree/compare/v1.0.0...v2.0.0
