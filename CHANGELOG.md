@@ -8,6 +8,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 No changes yet.
 
+## [3.2.1] - 2026-11-07
+
+### Added
+
+- CI exercises the plain build, install and find_package() flow on CMake 3.24.0.
+
+### Changed
+
+- Add a `ci` CMake workflow preset; presets now need CMake 3.25.
+- Bump actions/checkout to v7
+- Bump pre-commit hook markdownlint-cli2 to v0.24.0
+- Bump pre-commit hook mirrors-clang-format to v23
+- Bump pre-commit hook pre-commit-hooks to v6
+- Bump pre-commit hooks
+- Bump pre-commit hooks (batch)
+- CI secret scan now verifies the gitleaks binary's sha256 before extraction.
+- Install CI tools from PyPI directly; no private package index in tracked files
+- Pin actions/checkout to a commit sha
+- Switch the changelog to towncrier fragments
+
+### Fixed
+
+- Refresh the CHANGELOG version comparison links
+
 ## [3.2.0] - 2026-09-08
 
 ### Added
@@ -169,7 +193,8 @@ No changes yet.
 - Support for custom coordinate types and dynamically-sized containers
 - Memory-efficient design with O(log n) stack overhead
 
-[Unreleased]: https://github.com/rlichtenwalter/kdtree/compare/v3.2.0...main
+[Unreleased]: https://github.com/rlichtenwalter/kdtree/compare/v3.2.1...main
+[3.2.1]: https://github.com/rlichtenwalter/kdtree/compare/v3.2.0...v3.2.1
 [3.2.0]: https://github.com/rlichtenwalter/kdtree/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/rlichtenwalter/kdtree/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/rlichtenwalter/kdtree/compare/v2.0.1...v3.0.0
